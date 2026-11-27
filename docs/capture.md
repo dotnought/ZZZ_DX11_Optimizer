@@ -11,17 +11,17 @@ Extract the entire [Windows test ZIP](https://github.com/dotnought/ZZZ_DX11_Opti
 | **5** | Return to the same Sixth Street spot and record. |
 | **6** | Close ZZZ and XXMI. Restore the backed-up stock DLL. |
 
-**To record:** Choose the number and press Enter. When the tool says **Waiting**, Alt+Tab back to ZZZ, hold **Ctrl+Alt+F8** briefly, then stay in the game for 45 seconds. The tool prints **Saved** and the folder name when it finishes.
+**To record:** Choose the number and press Enter. Switch straight back to ZZZ. The 45-second recording starts automatically once ZZZ has focus. Stay in the game until the **ZZZ capture saved** message appears. The tool displays a failure message if it times out or the recorder stops early.
 
 **To find the ZZMI folder for choice 3:** In XXMI Launcher, select **ZZMI** and click **Open Mods Folder**. Go up one folder from **Mods**. The folder you need contains both **d3dx.ini** and **d3d11.dll**. Note where it is, then close ZZZ and XXMI Launcher, including its tray icon. Choose **3**, select that folder, and confirm the swap.
 
-**To launch for choices 4 and 5:** In XXMI Launcher with ZZMI selected, open **Settings → Advanced → Unsafe Mode**. This is the launcher's built-in option to allow third-party DLLs. If you prefer to leave it off, the first two recordings are still useful. After choice **6**, return it to its previous setting. [Launcher setting source](https://github.com/SpectrumQT/XXMI-Launcher/blob/4f5ef31cc237394568119f9feac2d99f44665466/src/xxmi_launcher/gui/windows/settings/frames/advanced_settings_frame.py#L99-L109)
+**To launch for choices 4 and 5:** Disable your personal mods and leave the built-in ZZMI Core files alone. In XXMI Launcher with ZZMI selected, open **Settings → Advanced → Unsafe Mode**. This is the launcher's built-in option to allow third-party DLLs. If you prefer to leave it off, the first two recordings are still useful. After choice **6**, return it to its previous setting. [Launcher setting source](https://github.com/SpectrumQT/XXMI-Launcher/blob/4f5ef31cc237394568119f9feac2d99f44665466/src/xxmi_launcher/gui/windows/settings/frames/advanced_settings_frame.py#L99-L109)
 
 **Right-click the `runs` folder beside Start Here.exe, choose Compress to ZIP file, and attach that ZIP.** Include any saved runs and the error text if a step fails. A screenshot of your graphics settings is helpful. The [advanced reference](advanced-capture.md) has the PowerShell commands, manual capture options, and full benchmark matrix.
 
 ## If something stops you
 
 - **Version check failed.** The native build expects the stock **XXMI Libraries v1.3.3** DLL. Keep the vanilla runs and send the library version shown in the launcher.
-- **PresentMon says access denied.** Use a Windows account with ETW access. The capture tool prints PresentMon's error so you can identify this case.
-- **Only PresentMon data saved for choice 4 or 5.** Keep that run. Check the launcher setting, relaunch through XXMI with the profiler installed, and press the chord while the game has focus. Wait for the tool to print **Saved** before closing ZZZ.
+- **PresentMon says access denied.** PresentMon needs ETW permissions. Its error is in `presentmon.log` in the run folder.
+- **Only PresentMon data saved for choice 4 or 5.** Keep that run. Check the launcher setting, relaunch through XXMI with the profiler installed, and stay in ZZZ until the result message. If you installed the previous profiler, use **6** to restore stock, then **3** to install this build.
 - **ZZZ won't launch with the profiler.** Close both apps, use choice **6** to restore stock, and send the launch error.

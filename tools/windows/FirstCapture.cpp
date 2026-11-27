@@ -168,6 +168,8 @@ void SwitchDll(const fs::path& root, const fs::path& dir, bool restore)
         std::wcout << L"Restore stock XXMI in " << dir.wstring() << L"? [y/N] " << std::flush;
     } else {
         CheckInstallFiles(root, dir);
+        if (current != StockHash && fs::exists(backup) && fs::exists(marker))
+            throw std::runtime_error("A previous profiler is installed. Choose 6 to restore stock, then choose 3 to install this build.");
         if (current != StockHash)
             throw std::runtime_error("This folder does not contain the official XXMI Libraries v1.3.3 DLL. Keep the vanilla results and tell Codex which XXMI Libraries version you have.");
         if (fs::exists(backup) || fs::exists(marker))
@@ -225,26 +227,128 @@ std::wstring RunName(DWORD pid, const wchar_t* scene, const wchar_t* condition)
     return std::wstring(stamp) + L"-" + scene + L"-" + condition;
 }
 
-DWORD Record(const fs::path& exe, const fs::path& run, DWORD pid, const std::wstring& name)
+bool GameHasFocus(DWORD pid)
 {
+    DWORD foreground = 0;
+    const HWND window = GetForegroundWindow();
+    return window && GetWindowThreadProcessId(window, &foreground) && foreground == pid;
+}
+
+void WaitForGame(DWORD pid)
+{
+    std::wcout << L"Switch back to ZZZ now. Recording starts automatically when ZZZ has focus.\n"
+                  L"Stay at the test spot until the result appears.\n" << std::flush;
+    SetConsoleTitleW(L"ZZZ profiler - Switch back to ZZZ");
+    const ULONGLONG deadline = GetTickCount64() + 25000;
+    ULONGLONG focusedAt = 0;
+    while (GetTickCount64() < deadline) {
+        const auto now = GetTickCount64();
+        if (!GameHasFocus(pid)) {
+            focusedAt = 0;
+        } else if (!focusedAt) {
+            focusedAt = now;
+        } else if (now - focusedAt >= 1500) {
+            return;
+        }
+        Sleep(100);
+    }
+    throw std::runtime_error("ZZZ did not come to the foreground within 25 seconds. Choose the run again and switch directly to ZZZ.");
+}
+
+Handle OpenNativeRequest(DWORD pid)
+{
+    const auto name = L"Local\\ZZZ-DX11-Capture-" + std::to_wstring(pid);
+    Handle event(OpenEventW(EVENT_MODIFY_STATE | SYNCHRONIZE, FALSE, name.c_str()));
+    if (!event)
+        throw std::runtime_error("The game did not load this profiler. Close ZZZ, restore any older build with choice 6, install this build with choice 3, then launch through XXMI.");
+    return event;
+}
+
+void StopRecorder(HANDLE process, DWORD group)
+{
+    // Give the child console group time to shut down its own ETW session.
+    GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, group);
+    if (WaitForSingleObject(process, 2500) == WAIT_TIMEOUT)
+        TerminateProcess(process, ERROR_TIMEOUT);
+}
+
+void Record(const fs::path& exe, const fs::path& run, DWORD pid, const std::wstring& name, HANDLE nativeStart)
+{
+    const auto csv = run / L"presentmon.csv";
+    const auto log = run / L"presentmon.log";
     std::wstring args = L"\"" + exe.wstring() + L"\" --process_id " + std::to_wstring(pid) +
-        L" --output_file \"" + (run / L"presentmon.csv").wstring() +
-        L"\" --session_name \"ZZZ-" + name + L"\" --hotkey CTRL+ALT+F8 --timed " +
-        std::to_wstring(Seconds) + L" --terminate_after_timed --terminate_on_proc_exit"
+        L" --output_file \"" + csv.wstring() + L"\" --session_name \"ZZZ-" + name +
+        L"\" --timed " + std::to_wstring(Seconds) + L" --terminate_after_timed --terminate_on_proc_exit"
         L" --qpc_time --no_console_stats --no_track_input";
+    SECURITY_ATTRIBUTES inherit{sizeof(inherit), nullptr, TRUE};
+    const HANDLE output = CreateFileW(log.c_str(), GENERIC_WRITE, FILE_SHARE_READ, &inherit,
+        CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (output == INVALID_HANDLE_VALUE)
+        WindowsError("Could not open presentmon.log");
+    Handle logHandle(output);
+    const HANDLE input = CreateFileW(L"NUL", GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, &inherit,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (input == INVALID_HANDLE_VALUE)
+        WindowsError("Could not open PresentMon's input handle");
+    Handle inputHandle(input);
     STARTUPINFOW si{};
     si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESTDHANDLES;
+    si.hStdInput = inputHandle.get();
+    si.hStdOutput = si.hStdError = logHandle.get();
     PROCESS_INFORMATION pi{};
-    if (!CreateProcessW(exe.c_str(), args.data(), nullptr, nullptr, FALSE, 0, nullptr, run.c_str(), &si, &pi))
+    if (!CreateProcessW(exe.c_str(), args.data(), nullptr, nullptr, TRUE, CREATE_NEW_PROCESS_GROUP,
+            nullptr, run.c_str(), &si, &pi))
         WindowsError("Could not start PresentMon");
     Handle process(pi.hProcess);
     CloseHandle(pi.hThread);
-    if (WaitForSingleObject(process.get(), INFINITE) != WAIT_OBJECT_0)
+    logHandle.reset();
+    inputHandle.reset();
+
+    const auto started = GetTickCount64();
+    const auto deadline = started + (Seconds + 15) * 1000;
+    bool recording = false;
+    DWORD waitResult = WAIT_TIMEOUT;
+    SetConsoleTitleW(L"ZZZ profiler - Starting PresentMon");
+    while ((waitResult = WaitForSingleObject(process.get(), 100)) == WAIT_TIMEOUT) {
+        const auto now = GetTickCount64();
+        // The CSV is opened when PresentMon receives its first frame. This also
+        // keeps native profiling off if starting the ETW session failed.
+        if (!recording && GetFileAttributesW(csv.c_str()) != INVALID_FILE_ATTRIBUTES) {
+            recording = true;
+            if (nativeStart && !SetEvent(nativeStart))
+                std::wcout << L"Could not start the native capture. PresentMon is still recording.\n";
+            SetConsoleTitleW(L"ZZZ profiler - Recording");
+            std::wcout << L"Recording. A message will appear when the results are ready.\n" << std::flush;
+            MessageBeep(MB_OK);
+        }
+        if (now >= deadline || (!recording && now - started >= 15000)) {
+            StopRecorder(process.get(), pi.dwProcessId);
+            throw std::runtime_error(recording
+                ? "PresentMon did not finish before the 60-second limit. Its log and any CSV are in the run folder."
+                : "PresentMon produced no frames within 15 seconds. Check that ZZZ is open in DX11. The run folder contains presentmon.log.");
+        }
+    }
+    if (waitResult != WAIT_OBJECT_0)
         WindowsError("Could not wait for PresentMon");
     DWORD status = 0;
     if (!GetExitCodeProcess(process.get(), &status))
         WindowsError("Could not check PresentMon's result");
-    return status;
+    if (status) {
+        std::ifstream details(log);
+        std::string line;
+        while (std::getline(details, line))
+            std::cerr << line << '\n';
+        throw std::runtime_error("PresentMon exited with code " + std::to_string(status) +
+            ". See the error above or presentmon.log in the run folder.");
+    }
+    if (GetTickCount64() - started < (Seconds - 2) * 1000)
+        throw std::runtime_error("Recording ended early. Keep ZZZ open until the results message appears.");
+
+    std::ifstream results(csv);
+    std::string line;
+    if (!std::getline(results, line) || !std::getline(results, line) || line.empty())
+        throw std::runtime_error("PresentMon finished without recording any frames. See presentmon.log in the run folder.");
 }
 
 std::string CopyNative(const fs::path& dir, const fs::path& run, DWORD pid, fs::file_time_type after)
@@ -276,12 +380,14 @@ void Capture(const fs::path& root, const fs::path& dir, const std::string& sessi
     const auto games = FindProcesses(Game, BetaGame);
     if (games.size() != 1)
         throw std::runtime_error("Open one ZZZ game window, enter the area you want to capture, then choose the recording again.");
+    Handle nativeStart;
     if (native) {
         if (FileHash(dir / L"d3d11.dll") != FileHash(root / L"bin/d3d11.dll"))
             throw std::runtime_error("XXMI is using a different DLL. Close ZZZ and XXMI, then use the install option and check the launcher setting in the guide.");
         CheckInstallFiles(root, dir);
         if (!fs::exists(dir / L"zzz-profiler.ini"))
             throw std::runtime_error("The native profiler needs zzz-profiler.ini. Close ZZZ and XXMI, then restore and reinstall.");
+        nativeStart = OpenNativeRequest(games.front());
     }
     const auto exe = root / L"third-party/PresentMon/PresentMon-2.6.0-x64.exe";
     if (FileHash(exe) != PresentMonHash)
@@ -291,15 +397,21 @@ void Capture(const fs::path& root, const fs::path& dir, const std::string& sessi
     const auto name = RunName(games.front(), area, variant);
     const auto run = root / L"runs" / name;
     fs::create_directories(run);
+    std::wcout << L"Run folder: " << run.wstring() << L"\n";
+    WaitForGame(games.front());
     const auto armed = fs::file_time_type::clock::now();
-    std::wcout << L"Waiting for Ctrl+Alt+F8. Alt+Tab to ZZZ and hold the chord briefly.\n"
-               << L"Keep the game in the foreground for 45 seconds, then check this window.\n" << std::flush;
-    if (Record(exe, run, games.front(), name) != 0 || !fs::exists(run / L"presentmon.csv"))
-        throw std::runtime_error("PresentMon could not record this run. Check the error printed above, then try again.");
-    std::ifstream csv(run / L"presentmon.csv");
-    std::string row;
-    if (!std::getline(csv, row) || !std::getline(csv, row) || row.empty())
-        throw std::runtime_error("PresentMon recorded no frames. Return to ZZZ before using Ctrl+Alt+F8 and keep the game open for the whole run.");
+    try {
+        Record(exe, run, games.front(), name, nativeStart.get());
+    } catch (...) {
+        if (nativeStart)
+            ResetEvent(nativeStart.get());
+        throw;
+    }
+    if (nativeStart) {
+        ResetEvent(nativeStart.get());
+        SetConsoleTitleW(L"ZZZ profiler - Saving GPU data");
+        std::wcout << L"Saving GPU data. Keep ZZZ open a few more seconds.\n" << std::flush;
+    }
     const auto captured = native ? CopyNative(dir, run, games.front(), armed) : std::string{};
     std::ofstream report(run / L"run.json");
     report << "{\n  \"scene\": \"" << (roscaelifer ? "Roscaelifer" : "SixthStreet")
@@ -318,7 +430,14 @@ void Capture(const fs::path& root, const fs::path& dir, const std::string& sessi
         throw std::runtime_error("Could not write run.json.");
     if (native && captured.empty())
         std::wcout << L"Saved PresentMon data. The native file did not arrive. Keep this run and check the guide.\n";
-    std::wcout << L"Saved " << run.wstring() << L"\n";
+    std::wcout << L"Saved " << run.wstring() << L"\n" << std::flush;
+    SetConsoleTitleW(L"ZZZ profiler - Capture saved");
+    const bool partial = native && captured.empty();
+    const auto message = std::wstring(roscaelifer ? L"Roscaelifer" : L"Sixth Street") +
+        (partial ? L" PresentMon recording saved. The native report did not arrive.\n\n"
+                 : L" recording saved. You can leave the test spot.\n\n") + run.wstring();
+    MessageBoxW(nullptr, message.c_str(), L"ZZZ capture saved",
+        MB_OK | MB_TOPMOST | MB_SETFOREGROUND | (partial ? MB_ICONWARNING : MB_ICONINFORMATION));
 }
 }
 
@@ -361,7 +480,12 @@ int wmain()
                 }
             } catch (const std::exception& error) {
                 // Keep the console open so the user can read the error and retry.
-                std::wcerr << L"\n" << error.what() << L"\n";
+                std::cerr << "\n" << error.what() << "\n";
+                if (choice == L"1" || choice == L"2" || choice == L"4" || choice == L"5") {
+                    SetConsoleTitleW(L"ZZZ profiler - Capture failed");
+                    MessageBoxA(nullptr, error.what(), "ZZZ capture failed",
+                        MB_OK | MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND);
+                }
             }
         }
     } catch (const std::exception& error) {

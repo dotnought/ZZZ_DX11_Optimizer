@@ -8,6 +8,6 @@ $destination = (Resolve-Path -LiteralPath $OutputDir).Path
 $exe = Join-Path $destination 'Start Here.exe'
 $obj = Join-Path $destination 'FirstCapture.obj'
 $source = Join-Path $PSScriptRoot 'windows\FirstCapture.cpp'
-& cl.exe /nologo /std:c++17 /EHsc /O2 /MT "/Fo$obj" "/Fe$exe" $source /link bcrypt.lib ole32.lib uuid.lib
+& cl.exe /nologo /std:c++17 /EHsc /O2 /MT "/Fo$obj" "/Fe$exe" $source /link bcrypt.lib ole32.lib uuid.lib user32.lib
 if ($LASTEXITCODE -ne 0) { throw "Could not build Start Here.exe (exit $LASTEXITCODE)" }
 Write-Host "Built $exe"

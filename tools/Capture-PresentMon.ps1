@@ -47,15 +47,41 @@ $started = [DateTime]::UtcNow
 $runName = '{0:yyyyMMdd-HHmmss-fff}-{1}-{2}' -f $started, $Scene, $Condition
 $run = (New-Item -ItemType Directory -Path (Join-Path $OutputRoot $runName)).FullName
 $csv = Join-Path $run 'presentmon.csv'
-Write-Host "Return to the game. Hold Ctrl+Alt+F8 briefly at the start of the route, then record for $Seconds seconds."
-Write-Host "Recording $Scene / $Condition for PID $($game.Id)."
-$pmArgs = @('--process_id', $game.Id, '--output_file', $csv,
-    '--session_name', "ZZZDX11-$($game.Id)-$($started.Ticks)", '--hotkey', 'CTRL+ALT+F8',
+$request = $null
+if ($nativeLevel) {
+    try {
+        $request = [Threading.EventWaitHandle]::OpenExisting("Local\ZZZ-DX11-Capture-$($game.Id)")
+    } catch {
+        throw 'ZZZ did not load the current profiler. Install the current build, launch through XXMI, and enter the area before retrying.'
+    }
+}
+Write-Host "Switch back to ZZZ now. Recording starts automatically after 8 seconds and lasts $Seconds seconds."
+$pmArgs = @('--process_id', $game.Id, '--output_file', ('"{0}"' -f $csv),
+    '--session_name', "ZZZDX11-$($game.Id)-$($started.Ticks)", '--delay', 8,
     '--timed', $Seconds, '--terminate_after_timed', '--terminate_on_proc_exit',
     '--qpc_time', '--no_console_stats', '--no_track_input')
-& $PresentMon @pmArgs
-if ($LASTEXITCODE -ne 0 -or !(Test-Path -LiteralPath $csv -PathType Leaf)) {
-    throw 'PresentMon did not finish successfully. Check the console output and Windows ETW permissions.'
+try {
+    $recorder = Start-Process -FilePath $PresentMon -ArgumentList $pmArgs -NoNewWindow -PassThru
+    $deadline = [DateTime]::UtcNow.AddSeconds(8 + $Seconds + 15)
+    $signaled = $false
+    while (!$recorder.WaitForExit(200)) {
+        if ($request -and !$signaled -and (Test-Path -LiteralPath $csv -PathType Leaf)) {
+            $null = $request.Set()
+            $signaled = $true
+        }
+        if ([DateTime]::UtcNow -ge $deadline) {
+            Stop-Process -InputObject $recorder -ErrorAction SilentlyContinue
+            throw 'PresentMon timed out. Check its output above.'
+        }
+    }
+    if ($recorder.ExitCode -ne 0 -or !(Test-Path -LiteralPath $csv -PathType Leaf)) {
+        throw 'PresentMon did not finish successfully. Check its output above.'
+    }
+} finally {
+    if ($request) {
+        $null = $request.Reset()
+        $request.Dispose()
+    }
 }
 
 $record = [ordered]@{

@@ -14,7 +14,7 @@ Start the official game for vanilla and use XXMI for all other conditions. Open 
 .\tools\Capture-PresentMon.ps1 -Scene Roscaelifer -Condition vanilla -SettingsId '3440x1440-dx11-uncapped-high' -GameVersion '<game version>' -Driver '<driver version>' -Route 'cafe-loop-v1'
 ```
 
-Return to the game and hold **Ctrl+Alt+F8** briefly at the start line. Follow the route for 45 seconds. After the capture, the script prints the new run folder. Repeat with `-Scene SixthStreet` and its own route name. For a static-camera test, use different route labels from the corresponding traversal runs. If Windows denies PresentMon access to ETW, use a PowerShell session with the appropriate ETW permissions. [PresentMon CLI documentation](https://github.com/GameTechDev/PresentMon/blob/v2.6.0/README-ConsoleApplication.md)
+Return to the game as soon as the tool tells you to switch. PresentMon starts automatically after eight seconds. Follow the route for 45 seconds. After the capture, the script prints the new run folder. Repeat with `-Scene SixthStreet` and its own route name. For a static-camera test, use different route labels from the corresponding traversal runs. If Windows denies PresentMon access to ETW, use a PowerShell session with the appropriate ETW permissions. [PresentMon CLI documentation](https://github.com/GameTechDev/PresentMon/blob/v2.6.0/README-ConsoleApplication.md)
 
 ## Install the native capture DLL
 
@@ -36,7 +36,7 @@ The installer backs up the exact stock DLL and verifies its SHA-256. The native 
 .\tools\Capture-PresentMon.ps1 -Scene Roscaelifer -Condition profiler-l2 -SettingsId '3440x1440-dx11-uncapped-high' -GameVersion '<game version>' -Driver '<driver version>' -Route 'cafe-loop-v1' -ImporterPath 'D:\XXMI Launcher\ZZMI'
 ```
 
-When the script is waiting, return to the game and hold **Ctrl+Alt+F8** briefly at the start line. Allow both timed captures to finish while the game remains open. The native reporter can use up to four additional seconds to retrieve delayed queries. A completed run contains `run.json`, PresentMon CSV, native metadata JSON, and four native CSVs. The script finds the native capture from the same PID and level and copies it from `zzz-captures` beside the DLL. For a native-only run, use the same key in the game without running the script. Press it again to stop early.
+Switch back to the game when prompted. PresentMon starts automatically and the script triggers the native capture when the first PresentMon frames arrive. Allow both timed captures to finish while the game remains open. The native reporter can use up to four additional seconds to retrieve delayed queries. A completed run contains `run.json`, PresentMon CSV, native metadata JSON, and four native CSVs. The script finds the native capture from the same PID and level and copies it from `zzz-captures` beside the DLL. For a native-only run, press **Ctrl+Alt+F8** in the game without running the script. Press it again to stop early.
 
 For the first analysis, capture vanilla and Level 2 in both areas. In the same session, capture the remaining conditions where time allows. Aim for three runs per condition and scene in the full matrix.
 
@@ -65,7 +65,7 @@ For each scene, keep the settings ID and route label identical across conditions
 | `StallMicroseconds` | Threshold for tagging a timed stall candidate, default 1000 µs |
 | `ShaderHash` | Optional hexadecimal Level 3 GPU filter. Zero measures observed workloads broadly |
 
-If the hotkey is bound elsewhere, close that tool for the capture. If you get only a PresentMon file, confirm the DLL was retained by the launcher, the config is beside that DLL, the game was restarted with the matching mode, and the display window had keyboard focus while holding the chord. When the game does not launch or graphics behave differently, close both apps, restore stock, and record the error and mod set.
+If the hotkey is bound elsewhere, close that tool for the capture. If you get only a PresentMon file, confirm the DLL was retained by the launcher, the config is beside that DLL, the game was restarted with the matching mode, and the display window stayed in the foreground. When the game does not launch or graphics behave differently, close both apps, restore stock, and record the error and mod set.
 
 ## Roll back
 

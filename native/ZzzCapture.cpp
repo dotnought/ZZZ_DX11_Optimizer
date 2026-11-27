@@ -137,6 +137,7 @@ struct State {
     unsigned gpuAttempts = 0, gpuDropped = 0, gpuDisjoint = 0, gpuTruncated = 0;
     int64_t profilerTicks = 0;
     HWND hwnd = nullptr;
+    HANDLE startRequest = nullptr;
     DXGI_ADAPTER_DESC adapterDesc{};
     DXGI_SWAP_CHAIN_DESC1 swapDesc{};
     LARGE_INTEGER driverVersion{};
@@ -153,6 +154,12 @@ struct State {
     std::vector<Frame> frames;
     std::vector<GpuRow> gpuRows;
     std::vector<Budget> budgets;
+
+    ~State()
+    {
+        if (startRequest)
+            CloseHandle(startRequest);
+    }
 };
 
 State state;
@@ -207,6 +214,11 @@ void Initialize()
     state.freq = frequency.QuadPart;
     state.stallTicks = state.freq * c.stallUs / 1000000;
     state.pid = GetCurrentProcessId();
+    if (c.mode) {
+        wchar_t eventName[64];
+        swprintf_s(eventName, L"Local\\ZZZ-DX11-Capture-%lu", state.pid);
+        state.startRequest = CreateEventW(nullptr, TRUE, FALSE, eventName);
+    }
 }
 
 HWND Window(IDXGISwapChain1* swap) noexcept
@@ -722,13 +734,20 @@ bool BeforePresent(const void* chain, const void* device, const void* context,
             return false;
         }
         if (!state.chain) {
-            if (!HotkeyHeld()) {
+            const bool requested = state.startRequest &&
+                WaitForSingleObject(state.startRequest, 0) == WAIT_OBJECT_0;
+            const bool held = HotkeyHeld();
+            if (!held)
                 state.keyWasDown = false;
+            if (!requested && (!held || state.keyWasDown))
                 return false;
-            }
+
             const HWND hwnd = Window(swap);
-            if (!IsForeground(hwnd) || !Trigger() || !rawDevice || !rawContext)
+            if (!IsForeground(hwnd) || !rawDevice || !rawContext)
                 return false;
+            if (requested)
+                ResetEvent(state.startRequest);
+            state.keyWasDown = held;
             Start(chain, device, context, swap, rawDevice, rawContext);
         }
         if (state.chain != chain)

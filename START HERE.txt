@@ -11,8 +11,8 @@ and point the camera the same way each time.
 1 AND 2 - RECORD WITHOUT XXMI
 Close XXMI Launcher. Start ZZZ the way you normally start the unmodded game.
 Go to your Roscaelifer spot. In Start Here.exe choose 1 and press Enter.
-When it says "Waiting," Alt+Tab back to ZZZ and hold Ctrl+Alt+F8 briefly.
-Stay in the game for 45 seconds. The tool prints "Saved" when it finishes.
+Switch straight back to ZZZ. The 45-second recording starts automatically.
+Stay in the game until the "ZZZ capture saved" message appears.
 Now go to your Sixth Street spot and repeat with choice 2.
 
 3 - INSTALL THE PROFILER
@@ -28,9 +28,10 @@ version shown for XXMI Libraries in your launcher.
 Open XXMI Launcher and select ZZMI. In Settings > Advanced, enable the
 launcher's built-in Unsafe Mode option, which allows a third-party DLL.
 If you prefer to keep it off, stop after the first two runs and send those.
-Launch ZZZ through XXMI. Return to the same Roscaelifer spot and choose 4.
-Use Ctrl+Alt+F8 in ZZZ and wait 45 seconds as before. Repeat in Sixth Street
-with choice 5. Keep ZZZ open a few seconds after each recording.
+Disable your personal mods and leave the built-in ZZMI Core files alone.
+Launch ZZZ through XXMI and return to the same Roscaelifer spot. Choose 4,
+switch back to ZZZ, and wait for the result message. Repeat in Sixth Street
+with choice 5.
 
 6 - PUT STOCK XXMI BACK
 Close ZZZ and XXMI Launcher. Choose 6, then type y and press Enter to undo
