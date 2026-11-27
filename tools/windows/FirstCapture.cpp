@@ -7,6 +7,7 @@
 #include <tlhelp32.h>
 #include <wrl/client.h>
 
+#include <atomic>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -14,6 +15,8 @@
 #include <stdexcept>
 #include <string>
 #include <system_error>
+#include <thread>
+#include <utility>
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -375,6 +378,65 @@ std::string CopyNative(const fs::path& dir, const fs::path& run, DWORD pid, fs::
     return {};
 }
 
+std::atomic<HWND> resultBanner{nullptr};
+
+void DismissResultBanner() noexcept
+{
+    if (const auto banner = resultBanner.exchange(nullptr))
+        PostMessageW(banner, WM_CLOSE, 0, 0);
+}
+
+void ShowResultBanner(const std::wstring& title, const std::wstring& text)
+{
+    constexpr int width = 380;
+    constexpr int height = 112;
+    const HMONITOR monitor = MonitorFromWindow(GetForegroundWindow(), MONITOR_DEFAULTTOPRIMARY);
+    MONITORINFO display{};
+    display.cbSize = sizeof(display);
+    if (!GetMonitorInfoW(monitor, &display))
+        return;
+
+    const HWND banner = CreateWindowExW(WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE,
+        L"STATIC", title.c_str(), WS_POPUP | WS_CAPTION,
+        display.rcWork.right - width - 18, display.rcWork.top + 18, width, height,
+        nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+    if (!banner)
+        return;
+    CreateWindowExW(0, L"STATIC", text.c_str(), WS_CHILD | WS_VISIBLE | SS_CENTER | SS_CENTERIMAGE,
+        0, 0, width - 16, height - 38, banner, nullptr, GetModuleHandleW(nullptr), nullptr);
+
+    // Run the banner on its own message queue and leave keyboard focus alone.
+    // If the timer cannot be created, the console and sound still report the result.
+    const UINT_PTR expiry = SetTimer(nullptr, 0, 8000, nullptr);
+    if (expiry) {
+        if (const auto previous = resultBanner.exchange(banner))
+            PostMessageW(previous, WM_CLOSE, 0, 0);
+        ShowWindow(banner, SW_SHOWNOACTIVATE);
+        MSG message{};
+        while (GetMessageW(&message, nullptr, 0, 0) > 0) {
+            if ((message.message == WM_TIMER && !message.hwnd && message.wParam == expiry) ||
+                (message.message == WM_CLOSE && message.hwnd == banner))
+                break;
+            DispatchMessageW(&message);
+        }
+        KillTimer(nullptr, expiry);
+        HWND expected = banner;
+        resultBanner.compare_exchange_strong(expected, nullptr);
+    }
+    DestroyWindow(banner);
+}
+
+void NotifyResult(std::wstring title, std::wstring text, bool warning) noexcept
+{
+    SetConsoleTitleW(title.c_str());
+    MessageBeep(warning ? MB_ICONWARNING : MB_ICONINFORMATION);
+    try {
+        std::thread(ShowResultBanner, std::move(title), std::move(text)).detach();
+    } catch (const std::system_error&) {
+        // The result and next prompt are already in the console.
+    }
+}
+
 void Capture(const fs::path& root, const fs::path& dir, const std::string& session, bool roscaelifer, bool native)
 {
     const auto games = FindProcesses(Game, BetaGame);
@@ -399,6 +461,7 @@ void Capture(const fs::path& root, const fs::path& dir, const std::string& sessi
     fs::create_directories(run);
     std::wcout << L"Run folder: " << run.wstring() << L"\n";
     WaitForGame(games.front());
+    DismissResultBanner();
     const auto armed = fs::file_time_type::clock::now();
     try {
         Record(exe, run, games.front(), name, nativeStart.get());
@@ -431,13 +494,11 @@ void Capture(const fs::path& root, const fs::path& dir, const std::string& sessi
     if (native && captured.empty())
         std::wcout << L"Saved PresentMon data. The native file did not arrive. Keep this run and check the guide.\n";
     std::wcout << L"Saved " << run.wstring() << L"\n" << std::flush;
-    SetConsoleTitleW(L"ZZZ profiler - Capture saved");
     const bool partial = native && captured.empty();
     const auto message = std::wstring(roscaelifer ? L"Roscaelifer" : L"Sixth Street") +
-        (partial ? L" PresentMon recording saved. The native report did not arrive.\n\n"
-                 : L" recording saved. You can leave the test spot.\n\n") + run.wstring();
-    MessageBoxW(nullptr, message.c_str(), L"ZZZ capture saved",
-        MB_OK | MB_TOPMOST | MB_SETFOREGROUND | (partial ? MB_ICONWARNING : MB_ICONINFORMATION));
+        (partial ? L" PresentMon saved. See the menu for details."
+                 : L" saved. The menu is ready.");
+    NotifyResult(L"ZZZ capture saved", message, partial);
 }
 }
 
@@ -482,9 +543,7 @@ int wmain()
                 // Keep the console open so the user can read the error and retry.
                 std::cerr << "\n" << error.what() << "\n";
                 if (choice == L"1" || choice == L"2" || choice == L"4" || choice == L"5") {
-                    SetConsoleTitleW(L"ZZZ profiler - Capture failed");
-                    MessageBoxA(nullptr, error.what(), "ZZZ capture failed",
-                        MB_OK | MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND);
+                    NotifyResult(L"ZZZ capture failed", L"See the capture menu for the error.", true);
                 }
             }
         }

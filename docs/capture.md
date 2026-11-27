@@ -11,7 +11,7 @@ Extract the entire [Windows test ZIP](https://github.com/dotnought/ZZZ_DX11_Opti
 | **5** | Return to the same Sixth Street spot and record. |
 | **6** | Close ZZZ and XXMI. Restore the backed-up stock DLL. |
 
-**To record:** Choose the number and press Enter. Switch straight back to ZZZ. The 45-second recording starts automatically once ZZZ has focus. Stay in the game until the **ZZZ capture saved** message appears. The tool displays a failure message if it times out or the recorder stops early.
+**To record:** Choose the number and press Enter. Switch straight back to ZZZ. The 45-second recording starts automatically once ZZZ has focus. Stay in the game until the finish sound or **ZZZ capture saved** banner. The banner disappears on its own. Switch back to the same menu window and pick the next option. If the run fails, the banner directs you to the error in the menu.
 
 **To find the ZZMI folder for choice 3:** In XXMI Launcher, select **ZZMI** and click **Open Mods Folder**. Go up one folder from **Mods**. The folder you need contains both **d3dx.ini** and **d3d11.dll**. Note where it is, then close ZZZ and XXMI Launcher, including its tray icon. Choose **3**, select that folder, and confirm the swap.
 
