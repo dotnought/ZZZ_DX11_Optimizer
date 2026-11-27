@@ -1,1 +1,1 @@
-0b52e7a23cf88ba71b049648869c88352c9ead693539a71924fbe5aa6a0a912a  ZZZ_DX11_Optimizer-profiling-m1-win64.zip
+418b278ded14baae7f97f5eb0e2c76712c8dc67234ac52b02b0881ff82c24d94  ZZZ_DX11_Optimizer-profiling-m1-win64.zip

@@ -1,7 +1,7 @@
-# Guided DX11 test package
+# Windows DX11 capture package
 
-Download the ZIP, extract the entire archive and double-click **Start Here.exe**. The numbered menu guides the four recordings, checks your ZZMI DLL before installing, and restores stock afterward. **START HERE.txt** in the ZIP is the one-page guide.
+Download and extract the ZIP, then open **Start Here.exe**. Choose a recording and switch back to ZZZ. The tool starts after the game comes to the foreground and shows a result popup after saving or if the capture fails. Each run includes PresentMon's log.
 
-The experimental profiler requires stock XXMI Libraries v1.3.3. Vanilla captures run without XXMI. The menu and DLL are compiled for Windows x64. ZZZ gameplay testing is pending.
+Vanilla capture works without XXMI. The experimental native profiler is based on XXMI Libraries v1.3.3. Read **START HERE.txt** for install, capture and rollback.
 
-The ZIP checksum is in [SHA256SUMS.txt](SHA256SUMS.txt). [Source and capture guide](https://github.com/dotnought/ZZZ_DX11_Optimizer/tree/profiling-milestone-1)
+[ZIP checksum](SHA256SUMS.txt) · [Source and capture guide](https://github.com/dotnought/ZZZ_DX11_Optimizer/tree/profiling-milestone-1)
