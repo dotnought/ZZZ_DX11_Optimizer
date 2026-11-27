@@ -1,0 +1,323 @@
+diff --git a/DirectX11/DirectX11.rc b/DirectX11/DirectX11.rc
+index 55d3e8c..0941bd0 100644
+--- a/DirectX11/DirectX11.rc
++++ b/DirectX11/DirectX11.rc
+@@ -52,9 +52,9 @@ END
+ /////////////////////////////////////////////////////////////////////////////
+ // CourierBold.SprintFont as an embedded resource, instead of the file.
+ 
+-IDR_COURIERBOLD		SPRITEFONT		"..\\courierbold.spritefont"
+-IDR_COURIERSMALL	SPRITEFONT		"..\\couriersmall.spritefont"
+-IDR_ARIAL		SPRITEFONT		"..\\arial.spritefont"
++IDR_COURIERBOLD		SPRITEFONT		"../courierbold.spritefont"
++IDR_COURIERSMALL	SPRITEFONT		"../couriersmall.spritefont"
++IDR_ARIAL		SPRITEFONT		"../arial.spritefont"
+ 
+ 
+ /////////////////////////////////////////////////////////////////////////////
+diff --git a/DirectX11/HackerInputLayout.h b/DirectX11/HackerInputLayout.h
+index 6e5153c..9663a0e 100644
+--- a/DirectX11/HackerInputLayout.h
++++ b/DirectX11/HackerInputLayout.h
+@@ -37,7 +37,7 @@ public:
+ #pragma endregion
+ 
+ private:
+-	std::atomic<ULONG> mRefCount = 1;
++	std::atomic<ULONG> mRefCount{1};
+ 	ID3D11InputLayout* mOrigLayout = nullptr;
+ 	std::vector<uint8_t> mShaderSignature;
+ 	uint64_t mLayoutHash = 0;
+diff --git a/DirectX11/Hunting.cpp b/DirectX11/Hunting.cpp
+index c073119..ef9a51f 100644
+--- a/DirectX11/Hunting.cpp
++++ b/DirectX11/Hunting.cpp
+@@ -704,7 +704,7 @@ static bool ReloadShader(wchar_t *shaderPath, wchar_t *fileName, HackerDevice *d
+ 	// This needs to use the value to find the key, so a linear search.
+ 	// It's notable that the map can contain multiple copies of the same hash, used for different visual
+ 	// items, but with same original code.  We need to update all copies.
+-	for each (pair<ID3D11DeviceChild *, OriginalShaderInfo> iter in G->mReloadedShaders)
++	for (pair<ID3D11DeviceChild *, OriginalShaderInfo> iter : G->mReloadedShaders)
+ 	{
+ 		if (iter.second.hash == hash)
+ 		{
+@@ -1010,7 +1010,7 @@ static void CopyToFixes(UINT64 hash, HackerDevice *device)
+ 	string asmText, hlslText, errText;
+ 
+ 	// The key of the map is the actual shader, we thus need to do a linear search to find our marked hash.
+-	for each (pair<ID3D11DeviceChild *, OriginalShaderInfo> iter in G->mReloadedShaders)
++	for (pair<ID3D11DeviceChild *, OriginalShaderInfo> iter : G->mReloadedShaders)
+ 	{
+ 		if (iter.second.hash == hash)
+ 		{
+diff --git a/DirectX11/IniHandler.cpp b/DirectX11/IniHandler.cpp
+index 30f4ea1..158500f 100644
+--- a/DirectX11/IniHandler.cpp
++++ b/DirectX11/IniHandler.cpp
+@@ -224,7 +224,7 @@ std::unordered_set<wstring> recursive_includes;
+ // prefix in a case insensitive way. Combined with set::lower_bound, this can
+ // be used to iterate over all elements in the sections set that begin with a
+ // given prefix.
+-static IniSections::iterator prefix_upper_bound(IniSections &sections, wstring &prefix)
++static IniSections::iterator prefix_upper_bound(IniSections &sections, const wstring &prefix)
+ {
+ 	IniSections::iterator i;
+ 
+@@ -261,7 +261,7 @@ static void emit_ini_warning_tone()
+ 		BeepFailure();
+ }
+ 
+-inline wchar_t ascii_tolower(wchar_t c)
++wchar_t ascii_tolower(wchar_t c)
+ {
+ 	return (c >= L'A' && c <= L'Z') ? c + (L'a' - L'A') : c;
+ }
+@@ -729,7 +729,7 @@ static pcre2_code* glob_to_regex(wstring &pattern)
+ 	return regex;
+ }
+ 
+-static vector<pcre2_code*> globbing_vector_to_regex(vector<wstring> &globbing_patterns)
++static vector<pcre2_code*> globbing_vector_to_regex(const vector<wstring> &globbing_patterns)
+ {
+ 	vector<pcre2_code*> ret;
+ 	pcre2_code *regex;
+@@ -2726,7 +2726,7 @@ static std::vector<std::string> split_string(const std::string *str, char sep)
+ }
+ 
+ template <typename T>
+-static std::set<T> vec_to_set(std::vector<T> &v)
++static std::set<T> vec_to_set(const std::vector<T> &v)
+ {
+ 	return std::set<T>(v.begin(), v.end());
+ }
+diff --git a/DirectX11/IniHandler.h b/DirectX11/IniHandler.h
+index 6e75eeb..b1bc88c 100644
+--- a/DirectX11/IniHandler.h
++++ b/DirectX11/IniHandler.h
+@@ -76,7 +76,7 @@ T2 GetIniEnumClass(const wchar_t *section, const wchar_t *key, T2 def, bool *fou
+ 
+ bool ParseBinaryLiterals(const wstring& input, size_t start, uint64_t& out, size_t& length);
+ 
+-inline wchar_t ascii_tolower(wchar_t c);
++wchar_t ascii_tolower(wchar_t c);
+ bool get_namespaced_section_name_lower(const wstring *section, const wstring *ini_namespace, wstring *ret);
+ bool get_section_namespace(const wchar_t *section, wstring *ret);
+ wstring get_namespaced_var_name_lower(const wstring& low_name, const wstring* ini_namespace);
+diff --git a/DirectX11/Overlay.cpp b/DirectX11/Overlay.cpp
+index 0889b54..e4751f2 100644
+--- a/DirectX11/Overlay.cpp
++++ b/DirectX11/Overlay.cpp
+@@ -594,7 +594,7 @@ static void CreateShaderCountString(wchar_t *counts)
+ 
+ static bool FindInfoText(wchar_t *info, UINT64 selectedShader)
+ {
+-	for each (pair<ID3D11DeviceChild *, OriginalShaderInfo> loaded in G->mReloadedShaders)
++	for (pair<ID3D11DeviceChild *, OriginalShaderInfo> loaded : G->mReloadedShaders)
+ 	{
+ 		if ((loaded.second.hash == selectedShader) && !loaded.second.infoText.empty())
+ 		{
+diff --git a/DirectX11/Override.cpp b/DirectX11/Override.cpp
+index 34d9692..33adb90 100644
+--- a/DirectX11/Override.cpp
++++ b/DirectX11/Override.cpp
+@@ -142,7 +142,7 @@ struct KeyOverrideCycleParam
+ 			LogInfoNoNL(" %S=%s", name, cur.c_str());
+ 	}
+ 
+-	float as_float(float default)
++	float as_float(float fallback)
+ 	{
+ 		float val;
+ 		int n;
+@@ -150,12 +150,12 @@ struct KeyOverrideCycleParam
+ 		n = sscanf_s(cur.c_str(), "%f", &val);
+ 		if (!n || n == EOF) {
+ 			// Blank entry
+-			return default;
++			return fallback;
+ 		}
+ 		return val;
+ 	}
+ 
+-	int as_int(int default)
++	int as_int(int fallback)
+ 	{
+ 		int val;
+ 		int n;
+@@ -163,25 +163,25 @@ struct KeyOverrideCycleParam
+ 		n = sscanf_s(cur.c_str(), "%i", &val);
+ 		if (!n || n == EOF) {
+ 			// Blank entry
+-			return default;
++			return fallback;
+ 		}
+ 		return val;
+ 	}
+ 
+ 	template <class T1, class T2>
+-	T2 as_enum(EnumName_t<T1, T2> *enum_names, T2 default)
++	T2 as_enum(EnumName_t<T1, T2> *enum_names, T2 fallback)
+ 	{
+ 		T2 val;
+ 
+ 		if (cur.empty()) {
+ 			// Blank entry
+-			return default;
++			return fallback;
+ 		}
+ 
+ 		val = lookup_enum_val<T1, T2>(enum_names, cur.c_str(), (T2)-1);
+ 		if (val == (T2)-1) {
+ 			LogOverlayW(LOG_WARNING, L"Unmatched value \"%S\"\n", cur.c_str());
+-			return default;
++			return fallback;
+ 		}
+ 
+ 		return val;
+diff --git a/DirectX11/ResourceHash.cpp b/DirectX11/ResourceHash.cpp
+index dc4050c..4c6053c 100644
+--- a/DirectX11/ResourceHash.cpp
++++ b/DirectX11/ResourceHash.cpp
+@@ -2782,7 +2782,7 @@ uint32_t GetRegionHash(HackerContext* context, ID3D11Buffer* buffer, UINT offset
+ 	uint32_t hash;
+ 
+ 	// Lookup offset in L2 cache. This one is slower and requires `handle_info` lookup.
+-	RegionHashKeyL2 level_2_cache_key{ (uint64_t)offset, size };
++	RegionHashKeyL2 level_2_cache_key{ offset, size };
+ 	hash = handle_info->GetCachedRegionHash(level_2_cache_key);
+ 	if (hash) {
+ 		region_hashes_global_cache.insert(level_3_cache_key, hash);
+@@ -3012,7 +3012,7 @@ uint32_t GetSpatialHash(HackerContext* context, ID3D11Buffer* buffer, UINT offse
+ 	uint32_t hash;
+ 
+ 	// Lookup offset in L2 cache. This one is slower and requires `handle_info` lookup.
+-	RegionHashKeyL2 level_2_cache_key{ (uint64_t)offset_x, size };
++	RegionHashKeyL2 level_2_cache_key{ offset_x, size };
+ 	hash = handle_info->GetCachedRegionHash(level_2_cache_key);
+ 	if (hash) {
+ 		//region_hashes_global_cache.insert(level_3_cache_key, hash);
+diff --git a/DirectX11/cursor.cpp b/DirectX11/cursor.cpp
+index f0e8858..3c5b6e9 100644
+--- a/DirectX11/cursor.cpp
++++ b/DirectX11/cursor.cpp
+@@ -52,7 +52,7 @@ static HCURSOR InvisibleCursor()
+ 	static HCURSOR cursor = NULL;
+ 	int width, height;
+ 	unsigned pitch, size;
+-	char *and, *xor;
++	char *andMask, *xorMask;
+ 
+ 	if (!cursor) {
+ 		width = GetSystemMetrics(SM_CXCURSOR);
+@@ -60,16 +60,16 @@ static HCURSOR InvisibleCursor()
+ 		pitch = ((width + 31) / 32) * 4;
+ 		size = pitch * height;
+ 
+-		and = new char[size];
+-		xor = new char[size];
++		andMask = new char[size];
++		xorMask = new char[size];
+ 
+-		memset(and, 0xff, size);
+-		memset(xor, 0x00, size);
++		memset(andMask, 0xff, size);
++		memset(xorMask, 0x00, size);
+ 
+-		cursor = CreateCursor(GetModuleHandle(NULL), 0, 0, width, height, and, xor);
++		cursor = CreateCursor(GetModuleHandle(NULL), 0, 0, width, height, andMask, xorMask);
+ 
+-		delete[] and;
+-		delete[] xor;
++		delete[] andMask;
++		delete[] xorMask;
+ 	}
+ 
+ 	return cursor;
+diff --git a/DirectXTK/Src/BasicEffect.cpp b/DirectXTK/Src/BasicEffect.cpp
+index 6402270..2fde7c2 100644
+--- a/DirectXTK/Src/BasicEffect.cpp
++++ b/DirectXTK/Src/BasicEffect.cpp
+@@ -382,7 +382,8 @@ const int EffectBase<BasicEffectTraits>::PixelShaderIndices[] =
+ 
+ 
+ // Global pool of per-device BasicEffect resources.
+-SharedResourcePool<ID3D11Device*, EffectBase<BasicEffectTraits>::DeviceResources> EffectBase<BasicEffectTraits>::deviceResourcesPool;
++template<>
++SharedResourcePool<ID3D11Device*, EffectBase<BasicEffectTraits>::DeviceResources> EffectBase<BasicEffectTraits>::deviceResourcesPool{};
+ 
+ 
+ // Constructor.
+diff --git a/DirectXTK/Src/SpriteBatch.cpp b/DirectXTK/Src/SpriteBatch.cpp
+index f675467..2b266b7 100644
+--- a/DirectXTK/Src/SpriteBatch.cpp
++++ b/DirectXTK/Src/SpriteBatch.cpp
+@@ -896,7 +896,7 @@ void XM_CALLCONV SpriteBatch::Impl::RenderSprite(SpriteInfo const* sprite,
+     for (int i = 0; i < VerticesPerSprite; i++)
+     {
+         // Calculate position.
+-        XMVECTOR cornerOffset = (cornerOffsets[i] - origin) * destinationSize;
++        XMVECTOR cornerOffset = (cornerOffsets[i].v - origin) * destinationSize;
+         
+         // Apply 2x2 rotation matrix.
+         XMVECTOR position1 = XMVectorMultiplyAdd(XMVectorSplatX(cornerOffset), rotationMatrix1, destination);
+diff --git a/DirectXTK/Src/SpriteFont.cpp b/DirectXTK/Src/SpriteFont.cpp
+index 1c0fd9f..6a3e24b 100644
+--- a/DirectXTK/Src/SpriteFont.cpp
++++ b/DirectXTK/Src/SpriteFont.cpp
+@@ -320,7 +320,7 @@ void XM_CALLCONV SpriteFont::DrawString(_In_ SpriteBatch* spriteBatch, _In_z_ wc
+     // If the text is mirrored, offset the start position accordingly.
+     if (effects)
+     {
+-        baseOffset -= MeasureString(text) * axisIsMirroredTable[effects & 3];
++        baseOffset -= MeasureString(text) * axisIsMirroredTable[effects & 3].v;
+     }
+ 
+     // Draw each character in turn.
+diff --git a/HLSLDecompiler/DecompileHLSL.cpp b/HLSLDecompiler/DecompileHLSL.cpp
+index 6175e73..ac57a1d 100644
+--- a/HLSLDecompiler/DecompileHLSL.cpp
++++ b/HLSLDecompiler/DecompileHLSL.cpp
+@@ -364,7 +364,7 @@ public:
+ 	{
+ 		string interpolation = "";
+ 
+-		for each(Declaration declaration in shader->asPhase[MAIN_PHASE].ppsDecl[0])
++		for (Declaration declaration : shader->asPhase[MAIN_PHASE].ppsDecl[0])
+ 		{
+ 			if (declaration.eOpcode == OPCODE_DCL_INPUT_PS)
+ 			{
+diff --git a/util.h b/util.h
+index 97fc69a..59fb18c 100644
+--- a/util.h
++++ b/util.h
+@@ -224,7 +224,7 @@ static int _autoicmp(const char *s1, const char *s2)
+ // To use this function be sure to terminate an EnumName_t list with {NULL, 0}
+ // as it cannot use ArraySize on passed in arrays.
+ template <class T1, class T2>
+-static T2 lookup_enum_val(struct EnumName_t<T1, T2> *enum_names, T1 name, T2 default, bool *found=NULL)
++static T2 lookup_enum_val(struct EnumName_t<T1, T2> *enum_names, T1 name, T2 fallback, bool *found=NULL)
+ {
+ 	for (; enum_names->name; enum_names++) {
+ 		if (!_autoicmp(name, enum_names->name)) {
+@@ -237,10 +237,10 @@ static T2 lookup_enum_val(struct EnumName_t<T1, T2> *enum_names, T1 name, T2 def
+ 	if (found)
+ 		*found = false;
+ 
+-	return default;
++	return fallback;
+ }
+ template <class T1, class T2>
+-static T2 lookup_enum_val(struct EnumName_t<T1, T2> *enum_names, T1 name, size_t len, T2 default, bool *found=NULL)
++static T2 lookup_enum_val(struct EnumName_t<T1, T2> *enum_names, T1 name, size_t len, T2 fallback, bool *found=NULL)
+ {
+ 	for (; enum_names->name; enum_names++) {
+ 		if (!_wcsnicmp(name, enum_names->name, len)) {
+@@ -253,7 +253,7 @@ static T2 lookup_enum_val(struct EnumName_t<T1, T2> *enum_names, T1 name, size_t
+ 	if (found)
+ 		*found = false;
+ 
+-	return default;
++	return fallback;
+ }
+ template <class T1, class T2>
+ static T1 lookup_enum_name(struct EnumName_t<T1, T2> *enum_names, T2 val)

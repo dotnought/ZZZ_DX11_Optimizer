@@ -1,0 +1,8 @@
+/build/
+/dist/
+__pycache__/
+*.pyc
+/third-party/PresentMon/*.exe
+/runs/
+/report.json
+/report.md

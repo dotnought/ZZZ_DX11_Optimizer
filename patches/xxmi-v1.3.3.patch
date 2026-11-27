@@ -1,0 +1,982 @@
+diff --git a/DirectX11/CommandList.cpp b/DirectX11/CommandList.cpp
+index 809f92d..dc26d74 100644
+--- a/DirectX11/CommandList.cpp
++++ b/DirectX11/CommandList.cpp
+@@ -14,6 +14,7 @@
+ #include "D3D11Wrapper.h"
+ #include "IniHandler.h"
+ #include "profiling.h"
++#include "ZzzCapture.h"
+ #include "Hunting.h"
+ #include "cursor.h"
+ 
+@@ -438,6 +439,7 @@ static void RunCommandListComplete(HackerDevice *mHackerDevice,
+ 		ID3D11View *view,
+ 		bool post)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::CommandList, mHackerDevice);
+ 	CommandListState state;
+ 	state.mHackerDevice = mHackerDevice;
+ 	state.mHackerContext = mHackerContext;
+diff --git a/DirectX11/DirectX11.vcxproj b/DirectX11/DirectX11.vcxproj
+index 5d02e6b..8ae413b 100644
+--- a/DirectX11/DirectX11.vcxproj
++++ b/DirectX11/DirectX11.vcxproj
+@@ -67,6 +67,9 @@
+     <ClCompile Include="Overlay.cpp" />
+     <ClCompile Include="Override.cpp" />
+     <ClCompile Include="profiling.cpp" />
++    <ClCompile Include="ZzzCapture.cpp">
++      <LanguageStandard>stdcpp17</LanguageStandard>
++    </ClCompile>
+     <ClCompile Include="ResourceHash.cpp" />
+     <ClCompile Include="ShaderRegex.cpp" />
+   </ItemGroup>
+@@ -243,7 +246,7 @@
+       <SubSystem>Windows</SubSystem>
+       <GenerateDebugInformation>true</GenerateDebugInformation>
+       <ModuleDefinitionFile>d3d11Wrapper.def</ModuleDefinitionFile>
+-      <AdditionalDependencies>..\Nektra\NktHookLib_Debug.lib;..\pcre2\pcre2-8-32d.lib;XINPUT9_1_0.lib;d3dcompiler.lib;DXGI.lib;Shlwapi.lib;Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
++      <AdditionalDependencies>Version.lib;Advapi32.lib;..\Nektra\NktHookLib_Debug.lib;..\pcre2\pcre2-8-32d.lib;XINPUT9_1_0.lib;d3dcompiler.lib;DXGI.lib;Shlwapi.lib;Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+       <ForceSymbolReferences>_CreateDXGIFactory@8</ForceSymbolReferences>
+     </Link>
+     <PostBuildEvent>
+@@ -269,7 +272,7 @@ call "$(SolutionDir)CopyToGames.bat" "$(TargetDir)" "$(TargetedSDKArchitecture)"
+       <SubSystem>Windows</SubSystem>
+       <GenerateDebugInformation>true</GenerateDebugInformation>
+       <ModuleDefinitionFile>d3d11Wrapper.def</ModuleDefinitionFile>
+-      <AdditionalDependencies>..\Nektra\NktHookLib64_Debug.lib;..\pcre2\pcre2-8-64d.lib;XINPUT9_1_0.lib;d3dcompiler.lib;DXGI.lib;Shlwapi.lib;Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
++      <AdditionalDependencies>Version.lib;Advapi32.lib;..\Nektra\NktHookLib64_Debug.lib;..\pcre2\pcre2-8-64d.lib;XINPUT9_1_0.lib;d3dcompiler.lib;DXGI.lib;Shlwapi.lib;Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+       <ForceSymbolReferences>CreateDXGIFactory</ForceSymbolReferences>
+     </Link>
+     <PostBuildEvent>
+@@ -300,7 +303,7 @@ call "$(SolutionDir)CopyToGames.bat" "$(TargetDir)" "$(TargetedSDKArchitecture)"
+       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+       <OptimizeReferences>true</OptimizeReferences>
+       <ModuleDefinitionFile>d3d11Wrapper.def</ModuleDefinitionFile>
+-      <AdditionalDependencies>..\Nektra\NktHookLib.lib;..\pcre2\pcre2-8-32.lib;XINPUT9_1_0.lib;d3dcompiler.lib;DXGI.lib;Shlwapi.lib;Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
++      <AdditionalDependencies>Version.lib;Advapi32.lib;..\Nektra\NktHookLib.lib;..\pcre2\pcre2-8-32.lib;XINPUT9_1_0.lib;d3dcompiler.lib;DXGI.lib;Shlwapi.lib;Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+       <IgnoreSpecificDefaultLibraries>
+       </IgnoreSpecificDefaultLibraries>
+       <ForceSymbolReferences>_CreateDXGIFactory@8</ForceSymbolReferences>
+@@ -333,7 +336,7 @@ call "$(SolutionDir)CopyToGames.bat" "$(TargetDir)" "$(TargetedSDKArchitecture)"
+       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+       <OptimizeReferences>true</OptimizeReferences>
+       <ModuleDefinitionFile>d3d11Wrapper.def</ModuleDefinitionFile>
+-      <AdditionalDependencies>..\Nektra\NktHookLib.lib;..\pcre2\pcre2-8-32.lib;XINPUT9_1_0.lib;d3dcompiler.lib;DXGI.lib;Shlwapi.lib;Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
++      <AdditionalDependencies>Version.lib;Advapi32.lib;..\Nektra\NktHookLib.lib;..\pcre2\pcre2-8-32.lib;XINPUT9_1_0.lib;d3dcompiler.lib;DXGI.lib;Shlwapi.lib;Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+       <ForceSymbolReferences>_CreateDXGIFactory@8</ForceSymbolReferences>
+     </Link>
+     <PostBuildEvent>
+@@ -365,7 +368,7 @@ xcopy "$(SolutionDir)Dependencies\*.*" "$(TargetDir)"  /E /Y /s
+       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+       <OptimizeReferences>true</OptimizeReferences>
+       <ModuleDefinitionFile>d3d11Wrapper.def</ModuleDefinitionFile>
+-      <AdditionalDependencies>..\Nektra\NktHookLib64.lib;..\pcre2\pcre2-8-64.lib;XINPUT9_1_0.lib;d3dcompiler.lib;DXGI.lib;Shlwapi.lib;Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
++      <AdditionalDependencies>Version.lib;Advapi32.lib;..\Nektra\NktHookLib64.lib;..\pcre2\pcre2-8-64.lib;XINPUT9_1_0.lib;d3dcompiler.lib;DXGI.lib;Shlwapi.lib;Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+       <ForceSymbolReferences>CreateDXGIFactory</ForceSymbolReferences>
+     </Link>
+     <PostBuildEvent>
+@@ -395,7 +398,7 @@ xcopy "$(SolutionDir)Dependencies\*.*" "$(TargetDir)"  /E /Y /s
+       <EnableCOMDATFolding>true</EnableCOMDATFolding>
+       <OptimizeReferences>true</OptimizeReferences>
+       <ModuleDefinitionFile>d3d11Wrapper.def</ModuleDefinitionFile>
+-      <AdditionalDependencies>..\Nektra\NktHookLib64.lib;..\pcre2\pcre2-8-64.lib;XINPUT9_1_0.lib;d3dcompiler.lib;DXGI.lib;Shlwapi.lib;Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
++      <AdditionalDependencies>Version.lib;Advapi32.lib;..\Nektra\NktHookLib64.lib;..\pcre2\pcre2-8-64.lib;XINPUT9_1_0.lib;d3dcompiler.lib;DXGI.lib;Shlwapi.lib;Dbghelp.lib;%(AdditionalDependencies)</AdditionalDependencies>
+       <ForceSymbolReferences>CreateDXGIFactory</ForceSymbolReferences>
+     </Link>
+     <PostBuildEvent>
+diff --git a/DirectX11/HackerContext.cpp b/DirectX11/HackerContext.cpp
+index ab1a45d..bcc0736 100644
+--- a/DirectX11/HackerContext.cpp
++++ b/DirectX11/HackerContext.cpp
+@@ -24,6 +24,7 @@
+ #include "ShaderRegex.h"
+ #include "FrameAnalysis.h"
+ #include "profiling.h"
++#include "ZzzCapture.h"
+ 
+ // -----------------------------------------------------------------------------------------------
+ 
+@@ -95,7 +96,8 @@ HackerContext::HackerContext(ID3D11Device1 *pDevice1, ID3D11DeviceContext1 *pCon
+ 
+ 	// Initialize DHash only for immediate contexts.
+ 	// Synchronous GPU readback is not supported on deferred contexts.
+-	if (pContext1->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
++	mCaptureDeferred = pContext1->GetType() == D3D11_DEVICE_CONTEXT_DEFERRED;
++	if (!mCaptureDeferred)
+ 	{
+ 		HRESULT hr = mDHasher.Initialize(pDevice1);
+ 
+@@ -878,6 +880,7 @@ HRESULT HackerContext::ComputeDHash(ID3D11Texture2D* texture, UINT mipLevel, DXG
+ 
+ void HackerContext::BeforeDraw(DrawContext &data)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::DrawOverrides, mHackerDevice, mCaptureDeferred);
+ 	draw_number++;
+ 
+ 	Profiling::State profiling_state;
+@@ -1096,6 +1099,7 @@ out_profile:
+ 
+ void HackerContext::AfterDraw(DrawContext &data)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::DrawOverrides, mHackerDevice, mCaptureDeferred);
+ 	int i;
+ 	Profiling::State profiling_state;
+ 
+@@ -1318,6 +1322,7 @@ STDMETHODIMP_(void) HackerContext::VSSetConstantBuffers(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumBuffers) ID3D11Buffer *const *ppConstantBuffers)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ConstantBuffers, mHackerDevice, mCaptureDeferred);
+ 	mOrigContext1->VSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers);
+ }
+ 
+@@ -1366,6 +1371,7 @@ void HackerContext::TrackAndDivertMap(HRESULT map_hr, ID3D11Resource *pResource,
+ 		UINT Subresource, D3D11_MAP MapType, UINT MapFlags,
+ 		D3D11_MAPPED_SUBRESOURCE *pMappedResource)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::MapTracking, mHackerDevice, mCaptureDeferred);
+ 	D3D11_RESOURCE_DIMENSION dim;
+ 	ID3D11Buffer *buf = NULL;
+ 	ID3D11Texture1D *tex1d = NULL;
+@@ -1525,6 +1531,7 @@ void UpdateResourceDataCacheFromMap(ID3D11Resource* pResource, void* data, size_
+ 
+ void HackerContext::TrackAndDivertUnmap(ID3D11Resource *pResource, UINT Subresource)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::MapTracking, mHackerDevice, mCaptureDeferred);
+ 	Profiling::State profiling_state;
+ 
+ 	if (Profiling::mode == Profiling::Mode::SUMMARY)
+@@ -1594,9 +1601,14 @@ STDMETHODIMP HackerContext::Map(THIS_
+ 	/* [annotation] */
+ 	__out D3D11_MAPPED_SUBRESOURCE *pMappedResource)
+ {
++	ZzzCapture::Scope capture((MapFlags & D3D11_MAP_FLAG_DO_NOT_WAIT) ? ZzzCapture::Op::MapNoWait :
++		(MapType == D3D11_MAP_READ || MapType == D3D11_MAP_READ_WRITE) ? ZzzCapture::Op::MapRead : ZzzCapture::Op::Map, mHackerDevice, mCaptureDeferred);
+ 	HRESULT hr;
+ 
+-	hr = mOrigContext1->Map(pResource, Subresource, MapType, MapFlags, pMappedResource);
++	{
++		ZzzCapture::Scope driver(ZzzCapture::Op::MapDriver, mHackerDevice, mCaptureDeferred);
++		hr = mOrigContext1->Map(pResource, Subresource, MapType, MapFlags, pMappedResource);
++	}
+ 
+ 	TrackAndDivertMap(hr, pResource, Subresource, MapType, MapFlags, pMappedResource);
+ 
+@@ -1609,6 +1621,7 @@ STDMETHODIMP_(void) HackerContext::Unmap(THIS_
+ 	/* [annotation] */
+ 	__in  UINT Subresource)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Unmap, mHackerDevice, mCaptureDeferred);
+ 	TrackAndDivertUnmap(pResource, Subresource);
+ 	mOrigContext1->Unmap(pResource, Subresource);
+ }
+@@ -1621,6 +1634,7 @@ STDMETHODIMP_(void) HackerContext::PSSetConstantBuffers(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumBuffers) ID3D11Buffer *const *ppConstantBuffers)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ConstantBuffers, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->PSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers);
+ }
+ 
+@@ -1653,6 +1667,7 @@ STDMETHODIMP_(void) HackerContext::IASetVertexBuffers(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumBuffers)  const UINT *pOffsets)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::VertexBuffers, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->IASetVertexBuffers(StartSlot, NumBuffers, ppVertexBuffers, pStrides, pOffsets);
+ 
+ 	 // Register hashes of vertex buffers for browsing in Shader Hunting Mode.
+@@ -1693,6 +1708,7 @@ STDMETHODIMP_(void) HackerContext::GSSetConstantBuffers(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumBuffers) ID3D11Buffer *const *ppConstantBuffers)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ConstantBuffers, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->GSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers);
+ }
+ 
+@@ -1726,6 +1742,7 @@ STDMETHODIMP_(void) HackerContext::VSSetSamplers(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumSamplers) ID3D11SamplerState *const *ppSamplers)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Samplers, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->VSSetSamplers(StartSlot, NumSamplers, ppSamplers);
+ }
+ 
+@@ -1737,6 +1754,7 @@ STDMETHODIMP_(void) HackerContext::PSSetSamplers(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumSamplers) ID3D11SamplerState *const *ppSamplers)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Samplers, mHackerDevice, mCaptureDeferred);
+ 	mOrigContext1->PSSetSamplers(StartSlot, NumSamplers, ppSamplers);
+ }
+ 
+@@ -1744,6 +1762,7 @@ STDMETHODIMP_(void) HackerContext::Begin(THIS_
+ 	/* [annotation] */
+ 	__in  ID3D11Asynchronous *pAsync)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::QueryMarker, mHackerDevice, mCaptureDeferred);
+ 	mOrigContext1->Begin(pAsync);
+ }
+ 
+@@ -1751,6 +1770,7 @@ STDMETHODIMP_(void) HackerContext::End(THIS_
+ 	/* [annotation] */
+ 	__in  ID3D11Asynchronous *pAsync)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::QueryMarker, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->End(pAsync);
+ }
+ 
+@@ -1764,6 +1784,7 @@ STDMETHODIMP HackerContext::GetData(THIS_
+ 	/* [annotation] */
+ 	__in  UINT GetDataFlags)
+ {
++	ZzzCapture::Scope capture((GetDataFlags & D3D11_ASYNC_GETDATA_DONOTFLUSH) ? ZzzCapture::Op::GetDataNoFlush : ZzzCapture::Op::GetData, mHackerDevice, mCaptureDeferred);
+ 	return mOrigContext1->GetData(pAsync, pData, DataSize, GetDataFlags);
+ }
+ 
+@@ -1784,6 +1805,7 @@ STDMETHODIMP_(void) HackerContext::GSSetShaderResources(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumViews) ID3D11ShaderResourceView *const *ppShaderResourceViews)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ShaderResources, mHackerDevice, mCaptureDeferred);
+ 	SetShaderResources<&ID3D11DeviceContext::GSSetShaderResources>(StartSlot, NumViews, ppShaderResourceViews);
+ }
+ 
+@@ -1795,6 +1817,7 @@ STDMETHODIMP_(void) HackerContext::GSSetSamplers(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumSamplers) ID3D11SamplerState *const *ppSamplers)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Samplers, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->GSSetSamplers(StartSlot, NumSamplers, ppSamplers);
+ }
+ 
+@@ -1806,6 +1829,7 @@ STDMETHODIMP_(void) HackerContext::OMSetBlendState(THIS_
+ 	/* [annotation] */
+ 	__in  UINT SampleMask)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Blend, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->OMSetBlendState(pBlendState, BlendFactor, SampleMask);
+ }
+ 
+@@ -1815,6 +1839,7 @@ STDMETHODIMP_(void) HackerContext::OMSetDepthStencilState(THIS_
+ 	/* [annotation] */
+ 	__in  UINT StencilRef)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::DepthStencil, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->OMSetDepthStencilState(pDepthStencilState, StencilRef);
+ }
+ 
+@@ -1831,6 +1856,7 @@ STDMETHODIMP_(void) HackerContext::SOSetTargets(THIS_
+ 
+ bool HackerContext::BeforeDispatch(DispatchContext *context)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::DispatchOverrides, mHackerDevice, mCaptureDeferred);
+ 	dispatch_number++;
+ 
+ 	if (G->hunting == HUNTING_MODE_ENABLED) {
+@@ -1869,6 +1895,7 @@ bool HackerContext::BeforeDispatch(DispatchContext *context)
+ 
+ void HackerContext::AfterDispatch(DispatchContext *context)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::DispatchOverrides, mHackerDevice, mCaptureDeferred);
+ 	if (context->post_commands)
+ 		RunCommandList(mHackerDevice, this, context->post_commands, &context->call_info, true);
+ }
+@@ -1881,10 +1908,13 @@ STDMETHODIMP_(void) HackerContext::Dispatch(THIS_
+ 	/* [annotation] */
+ 	__in  UINT ThreadGroupCountZ)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Dispatch, mHackerDevice, mCaptureDeferred, uint64_t{ThreadGroupCountX} * ThreadGroupCountY * ThreadGroupCountZ);
+ 	DispatchContext context{ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ};
+ 
+-	if (BeforeDispatch(&context))
++	if (BeforeDispatch(&context)) {
++		ZzzCapture::MarkWork(this, ZzzCapture::Work::Dispatch, mCurrentComputeShader);
+ 		mOrigContext1->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
++	}
+ 	else
+ 		Profiling::skipped_draw_calls++;
+ 
+@@ -1897,10 +1927,13 @@ STDMETHODIMP_(void) HackerContext::DispatchIndirect(THIS_
+ 	/* [annotation] */
+ 	__in  UINT AlignedByteOffsetForArgs)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::DispatchIndirect, mHackerDevice, mCaptureDeferred);
+ 	DispatchContext context{&pBufferForArgs, AlignedByteOffsetForArgs};
+ 
+-	if (BeforeDispatch(&context))
++	if (BeforeDispatch(&context)) {
++		ZzzCapture::MarkWork(this, ZzzCapture::Work::Dispatch, mCurrentComputeShader);
+ 		mOrigContext1->DispatchIndirect(pBufferForArgs, AlignedByteOffsetForArgs);
++	}
+ 	else
+ 		Profiling::skipped_draw_calls++;
+ 
+@@ -1911,6 +1944,7 @@ STDMETHODIMP_(void) HackerContext::RSSetState(THIS_
+ 	/* [annotation] */
+ 	__in_opt  ID3D11RasterizerState *pRasterizerState)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Rasterizer, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->RSSetState(pRasterizerState);
+ }
+ 
+@@ -2059,6 +2093,7 @@ STDMETHODIMP_(void) HackerContext::CopySubresourceRegion(THIS_
+ 	/* [annotation] */
+ 	__in_opt  const D3D11_BOX *pSrcBox)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Copy, mHackerDevice, mCaptureDeferred);
+ 	D3D11_BOX replaceSrcBox;
+ 	UINT replaceDstX = DstX;
+ 
+@@ -2069,6 +2104,7 @@ STDMETHODIMP_(void) HackerContext::CopySubresourceRegion(THIS_
+ 	if (ExpandRegionCopy(pDstResource, DstX, DstY, pSrcResource, pSrcBox, &replaceDstX, &replaceSrcBox))
+ 		pSrcBox = &replaceSrcBox;
+ 
++	 ZzzCapture::MarkWork(this, ZzzCapture::Work::Copy);
+ 	 mOrigContext1->CopySubresourceRegion(pDstResource, DstSubresource, replaceDstX, DstY, DstZ,
+ 		pSrcResource, SrcSubresource, pSrcBox);
+ 
+@@ -2094,6 +2130,7 @@ STDMETHODIMP_(void) HackerContext::CopyResource(THIS_
+ 	/* [annotation] */
+ 	__in  ID3D11Resource *pSrcResource)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Copy, mHackerDevice, mCaptureDeferred);
+ 	if (G->hunting && G->track_texture_updates != 2) { // Any hunting mode - want to catch hash contamination even while soft disabled
+ 		MarkResourceHashContaminated(pDstResource, 0, pSrcResource, 0, 'C', 0, 0, 0, NULL);
+ 	}
+@@ -2136,6 +2173,7 @@ STDMETHODIMP_(void) HackerContext::CopyResource(THIS_
+ 		}
+ 	}
+ 	
++	ZzzCapture::MarkWork(this, ZzzCapture::Work::Copy);
+ 	mOrigContext1->CopyResource(pDstResource, pSrcResource);
+ 
+ 	// Propagate subresource initialization state.
+@@ -2164,6 +2202,7 @@ STDMETHODIMP_(void) HackerContext::UpdateSubresource(THIS_
+ 	/* [annotation] */
+ 	__in  UINT SrcDepthPitch)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Update, mHackerDevice, mCaptureDeferred);
+ 	if (G->hunting && G->track_texture_updates != 2) { // Any hunting mode - want to catch hash contamination even while soft disabled
+ 		MarkResourceHashContaminated(pDstResource, DstSubresource, NULL, 0, 'U', 0, 0, 0, NULL);
+ 	}
+@@ -2171,6 +2210,7 @@ STDMETHODIMP_(void) HackerContext::UpdateSubresource(THIS_
+ 	if (G->cache_resource_data != DataCacheBindFlags::INVALID)
+ 		ClearResourceRegionHashCache(pDstResource);
+ 
++	 ZzzCapture::MarkWork(this, ZzzCapture::Work::Copy);
+ 	 mOrigContext1->UpdateSubresource(pDstResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch,
+ 		SrcDepthPitch);
+ 
+@@ -2196,6 +2236,8 @@ STDMETHODIMP_(void) HackerContext::CopyStructureCount(THIS_
+ 	/* [annotation] */
+ 	__in  ID3D11UnorderedAccessView *pSrcView)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Copy, mHackerDevice, mCaptureDeferred);
++	 ZzzCapture::MarkWork(this, ZzzCapture::Work::Copy);
+ 	 mOrigContext1->CopyStructureCount(pDstBuffer, DstAlignedByteOffset, pSrcView);
+ }
+ 
+@@ -2205,7 +2247,9 @@ STDMETHODIMP_(void) HackerContext::ClearUnorderedAccessViewUint(THIS_
+ 	/* [annotation] */
+ 	__in  const UINT Values[4])
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Clear, mHackerDevice, mCaptureDeferred);
+ 	RunViewCommandList(mHackerDevice, this, &G->clear_uav_uint_command_list, pUnorderedAccessView, false);
++	ZzzCapture::MarkWork(this, ZzzCapture::Work::Clear);
+ 	mOrigContext1->ClearUnorderedAccessViewUint(pUnorderedAccessView, Values);
+ 	RunViewCommandList(mHackerDevice, this, &G->post_clear_uav_uint_command_list, pUnorderedAccessView, true);
+ }
+@@ -2216,7 +2260,9 @@ STDMETHODIMP_(void) HackerContext::ClearUnorderedAccessViewFloat(THIS_
+ 	/* [annotation] */
+ 	__in  const FLOAT Values[4])
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Clear, mHackerDevice, mCaptureDeferred);
+ 	RunViewCommandList(mHackerDevice, this, &G->clear_uav_float_command_list, pUnorderedAccessView, false);
++	ZzzCapture::MarkWork(this, ZzzCapture::Work::Clear);
+ 	mOrigContext1->ClearUnorderedAccessViewFloat(pUnorderedAccessView, Values);
+ 	RunViewCommandList(mHackerDevice, this, &G->post_clear_uav_float_command_list, pUnorderedAccessView, true);
+ }
+@@ -2231,7 +2277,9 @@ STDMETHODIMP_(void) HackerContext::ClearDepthStencilView(THIS_
+ 	/* [annotation] */
+ 	__in  UINT8 Stencil)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Clear, mHackerDevice, mCaptureDeferred);
+ 	RunViewCommandList(mHackerDevice, this, &G->clear_dsv_command_list, pDepthStencilView, false);
++	ZzzCapture::MarkWork(this, ZzzCapture::Work::Clear);
+ 	mOrigContext1->ClearDepthStencilView(pDepthStencilView, ClearFlags, Depth, Stencil);
+ 	RunViewCommandList(mHackerDevice, this, &G->post_clear_dsv_command_list, pDepthStencilView, true);
+ }
+@@ -2273,6 +2321,8 @@ STDMETHODIMP_(void) HackerContext::ResolveSubresource(THIS_
+ 	/* [annotation] */
+ 	__in  DXGI_FORMAT Format)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Resolve, mHackerDevice, mCaptureDeferred);
++	 ZzzCapture::MarkWork(this, ZzzCapture::Work::Copy);
+ 	 mOrigContext1->ResolveSubresource(pDstResource, DstSubresource, pSrcResource, SrcSubresource,
+ 		Format);
+ 
+@@ -2284,10 +2334,14 @@ STDMETHODIMP_(void) HackerContext::ExecuteCommandList(THIS_
+ 	__in  ID3D11CommandList *pCommandList,
+ 	BOOL RestoreContextState)
+ {
+-	if (G->deferred_contexts_enabled)
++	ZzzCapture::Scope capture(ZzzCapture::Op::ExecuteList, mHackerDevice, mCaptureDeferred);
++	if (G->deferred_contexts_enabled) {
++		ZzzCapture::MarkWork(this, ZzzCapture::Work::CommandList);
+ 		mOrigContext1->ExecuteCommandList(pCommandList, RestoreContextState);
++	}
+ 
+ 	if (!RestoreContextState) {
++		ZzzCapture::MarkTargets(this, 0, nullptr, nullptr);
+ 		// This is equivalent to calling ClearState() afterwards, so we
+ 		// need to rebind the 3DMigoto resources now. See also
+ 		// FinishCommandList's RestoreDeferredContextState:
+@@ -2303,6 +2357,7 @@ STDMETHODIMP_(void) HackerContext::HSSetShaderResources(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumViews)  ID3D11ShaderResourceView *const *ppShaderResourceViews)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ShaderResources, mHackerDevice, mCaptureDeferred);
+ 	SetShaderResources<&ID3D11DeviceContext::HSSetShaderResources>(StartSlot, NumViews, ppShaderResourceViews);
+ }
+ 
+@@ -2329,6 +2384,7 @@ STDMETHODIMP_(void) HackerContext::HSSetSamplers(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumSamplers)  ID3D11SamplerState *const *ppSamplers)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Samplers, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->HSSetSamplers(StartSlot, NumSamplers, ppSamplers);
+ }
+ 
+@@ -2340,6 +2396,7 @@ STDMETHODIMP_(void) HackerContext::HSSetConstantBuffers(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumBuffers)  ID3D11Buffer *const *ppConstantBuffers)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ConstantBuffers, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->HSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers);
+ }
+ 
+@@ -2351,6 +2408,7 @@ STDMETHODIMP_(void) HackerContext::DSSetShaderResources(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumViews)  ID3D11ShaderResourceView *const *ppShaderResourceViews)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ShaderResources, mHackerDevice, mCaptureDeferred);
+ 	SetShaderResources<&ID3D11DeviceContext::DSSetShaderResources>(StartSlot, NumViews, ppShaderResourceViews);
+ }
+ 
+@@ -2377,6 +2435,7 @@ STDMETHODIMP_(void) HackerContext::DSSetSamplers(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumSamplers)  ID3D11SamplerState *const *ppSamplers)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Samplers, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->DSSetSamplers(StartSlot, NumSamplers, ppSamplers);
+ }
+ 
+@@ -2388,6 +2447,7 @@ STDMETHODIMP_(void) HackerContext::DSSetConstantBuffers(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumBuffers)  ID3D11Buffer *const *ppConstantBuffers)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ConstantBuffers, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->DSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers);
+ }
+ 
+@@ -2399,6 +2459,7 @@ STDMETHODIMP_(void) HackerContext::CSSetShaderResources(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumViews)  ID3D11ShaderResourceView *const *ppShaderResourceViews)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ShaderResources, mHackerDevice, mCaptureDeferred);
+ 	SetShaderResources<&ID3D11DeviceContext::CSSetShaderResources>(StartSlot, NumViews, ppShaderResourceViews);
+ }
+ 
+@@ -2443,6 +2504,9 @@ STDMETHODIMP_(void) HackerContext::SetShader(THIS_
+ 	UINT64 *currentShaderHash,
+ 	ID3D11Shader **currentShaderHandle)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Shader, mHackerDevice, mCaptureDeferred);
++	if (ZzzCapture::captureMode.load(std::memory_order_relaxed))
++		capture.possibleRepeat(pShader && pShader == *currentShaderHandle && NumClassInstances == 0);
+ 	ID3D11Shader *repl_shader = pShader;
+ 
+ 	// Always update the current shader handle no matter what so we can
+@@ -2538,6 +2602,7 @@ STDMETHODIMP_(void) HackerContext::CSSetSamplers(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumSamplers)  ID3D11SamplerState *const *ppSamplers)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Samplers, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->CSSetSamplers(StartSlot, NumSamplers, ppSamplers);
+ }
+ 
+@@ -2549,6 +2614,7 @@ STDMETHODIMP_(void) HackerContext::CSSetConstantBuffers(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumBuffers)  ID3D11Buffer *const *ppConstantBuffers)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ConstantBuffers, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->CSSetConstantBuffers(StartSlot, NumBuffers, ppConstantBuffers);
+ }
+ 
+@@ -2969,6 +3035,7 @@ STDMETHODIMP_(void) HackerContext::CSGetConstantBuffers(THIS_
+ 
+ STDMETHODIMP_(void) HackerContext::ClearState(THIS)
+ {
++	ZzzCapture::MarkTargets(this, 0, nullptr, nullptr);
+ 	 mOrigContext1->ClearState();
+ 
+ 	 // ClearState() will unbind StereoParams and IniParams, so we need to
+@@ -2978,6 +3045,7 @@ STDMETHODIMP_(void) HackerContext::ClearState(THIS)
+ 
+ STDMETHODIMP_(void) HackerContext::Flush(THIS)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Flush, mHackerDevice, mCaptureDeferred);
+ 	 mOrigContext1->Flush();
+ }
+ 
+@@ -2996,6 +3064,7 @@ STDMETHODIMP HackerContext::FinishCommandList(THIS_
+ 	/* [annotation] */
+ 	__out_opt  ID3D11CommandList **ppCommandList)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::FinishList, mHackerDevice, mCaptureDeferred);
+ 	BOOL ret = mOrigContext1->FinishCommandList(RestoreDeferredContextState, ppCommandList);
+ 
+ 	if (!RestoreDeferredContextState) {
+@@ -3184,6 +3253,7 @@ STDMETHODIMP_(void) HackerContext::PSSetShaderResources(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumViews) ID3D11ShaderResourceView *const *ppShaderResourceViews)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ShaderResources, mHackerDevice, mCaptureDeferred);
+ 	SetShaderResources<&ID3D11DeviceContext::PSSetShaderResources>(StartSlot, NumViews, ppShaderResourceViews);
+ }
+ 
+@@ -3220,11 +3290,14 @@ STDMETHODIMP_(void) HackerContext::DrawIndexed(THIS_
+ 	/* [annotation] */
+ 	__in  INT BaseVertexLocation)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::DrawIndexed, mHackerDevice, mCaptureDeferred, IndexCount);
+ 	DrawContext c = DrawContext(DrawCall::DrawIndexed, 0, IndexCount, 0, BaseVertexLocation, StartIndexLocation, 0, NULL, 0);
+ 	BeforeDraw(c);
+ 
+-	if (!c.call_info.skip)
++	if (!c.call_info.skip) {
++		 ZzzCapture::MarkWork(this, ZzzCapture::Work::Draw, mCurrentPixelShader);
+ 		 mOrigContext1->DrawIndexed(IndexCount, StartIndexLocation, BaseVertexLocation);
++	}
+ 	AfterDraw(c);
+ }
+ 
+@@ -3234,11 +3307,14 @@ STDMETHODIMP_(void) HackerContext::Draw(THIS_
+ 	/* [annotation] */
+ 	__in  UINT StartVertexLocation)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Draw, mHackerDevice, mCaptureDeferred, VertexCount);
+ 	DrawContext c = DrawContext(DrawCall::Draw, VertexCount, 0, 0, StartVertexLocation, 0, 0, NULL, 0);
+ 	BeforeDraw(c);
+ 
+-	if (!c.call_info.skip)
++	if (!c.call_info.skip) {
++		 ZzzCapture::MarkWork(this, ZzzCapture::Work::Draw, mCurrentPixelShader);
+ 		 mOrigContext1->Draw(VertexCount, StartVertexLocation);
++	}
+ 	AfterDraw(c);
+ }
+ 
+@@ -3250,6 +3326,7 @@ STDMETHODIMP_(void) HackerContext::IASetIndexBuffer(THIS_
+ 	/* [annotation] */
+ 	__in  UINT Offset)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::IndexBuffer, mHackerDevice, mCaptureDeferred);
+ 	mOrigContext1->IASetIndexBuffer(pIndexBuffer, Format, Offset);
+ 
+ 	// Register hash of index buffer for browsing in Shader Hunting Mode.
+@@ -3286,12 +3363,15 @@ STDMETHODIMP_(void) HackerContext::DrawIndexedInstanced(THIS_
+ 	/* [annotation] */
+ 	__in  UINT StartInstanceLocation)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::DrawIndexedInstanced, mHackerDevice, mCaptureDeferred, uint64_t{IndexCountPerInstance} * InstanceCount);
+ 	DrawContext c = DrawContext(DrawCall::DrawIndexedInstanced, 0, IndexCountPerInstance, InstanceCount, BaseVertexLocation, StartIndexLocation, StartInstanceLocation, NULL, 0);
+ 	BeforeDraw(c);
+ 
+-	if (!c.call_info.skip)
++	if (!c.call_info.skip) {
++		ZzzCapture::MarkWork(this, ZzzCapture::Work::Draw, mCurrentPixelShader);
+ 		mOrigContext1->DrawIndexedInstanced(IndexCountPerInstance, InstanceCount, StartIndexLocation,
+ 		BaseVertexLocation, StartInstanceLocation);
++	}
+ 	AfterDraw(c);
+ }
+ 
+@@ -3305,11 +3385,14 @@ STDMETHODIMP_(void) HackerContext::DrawInstanced(THIS_
+ 	/* [annotation] */
+ 	__in  UINT StartInstanceLocation)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::DrawInstanced, mHackerDevice, mCaptureDeferred, uint64_t{VertexCountPerInstance} * InstanceCount);
+ 	DrawContext c = DrawContext(DrawCall::DrawInstanced, VertexCountPerInstance, 0, InstanceCount, StartVertexLocation, 0, StartInstanceLocation, NULL, 0);
+ 	BeforeDraw(c);
+ 
+-	if (!c.call_info.skip)
++	if (!c.call_info.skip) {
++		ZzzCapture::MarkWork(this, ZzzCapture::Work::Draw, mCurrentPixelShader);
+ 		mOrigContext1->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation, StartInstanceLocation);
++	}
+ 	AfterDraw(c);
+ }
+ 
+@@ -3321,6 +3404,7 @@ STDMETHODIMP_(void) HackerContext::VSSetShaderResources(THIS_
+ 	/* [annotation] */
+ 	__in_ecount(NumViews) ID3D11ShaderResourceView *const *ppShaderResourceViews)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ShaderResources, mHackerDevice, mCaptureDeferred);
+ 	SetShaderResources<&ID3D11DeviceContext::VSSetShaderResources>(StartSlot, NumViews, ppShaderResourceViews);
+ }
+ 
+@@ -3332,6 +3416,7 @@ STDMETHODIMP_(void) HackerContext::OMSetRenderTargets(THIS_
+ 	/* [annotation] */
+ 	__in_opt ID3D11DepthStencilView *pDepthStencilView)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::RenderTargets, mHackerDevice, mCaptureDeferred);
+ 	Profiling::State profiling_state;
+ 
+ 	if (G->hunting == HUNTING_MODE_ENABLED) {
+@@ -3361,6 +3446,7 @@ STDMETHODIMP_(void) HackerContext::OMSetRenderTargets(THIS_
+ 	}
+ 
+ 	mOrigContext1->OMSetRenderTargets(NumViews, ppRenderTargetViews, pDepthStencilView);
++	ZzzCapture::MarkTargets(this, NumViews, ppRenderTargetViews, pDepthStencilView);
+ }
+ 
+ STDMETHODIMP_(void) HackerContext::OMSetRenderTargetsAndUnorderedAccessViews(THIS_
+@@ -3379,6 +3465,7 @@ STDMETHODIMP_(void) HackerContext::OMSetRenderTargetsAndUnorderedAccessViews(THI
+ 	/* [annotation] */
+ 	__in_ecount_opt(NumUAVs)  const UINT *pUAVInitialCounts)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::RenderTargets, mHackerDevice, mCaptureDeferred);
+ 	Profiling::State profiling_state;
+ 
+ 	if (G->hunting == HUNTING_MODE_ENABLED) {
+@@ -3415,15 +3502,19 @@ STDMETHODIMP_(void) HackerContext::OMSetRenderTargetsAndUnorderedAccessViews(THI
+ 
+ 	mOrigContext1->OMSetRenderTargetsAndUnorderedAccessViews(NumRTVs, ppRenderTargetViews, pDepthStencilView,
+ 		UAVStartSlot, NumUAVs, ppUnorderedAccessViews, pUAVInitialCounts);
++	ZzzCapture::MarkTargets(this, NumRTVs, ppRenderTargetViews, pDepthStencilView);
+ }
+ 
+ STDMETHODIMP_(void) HackerContext::DrawAuto(THIS)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::DrawAuto, mHackerDevice, mCaptureDeferred);
+ 	DrawContext c = DrawContext(DrawCall::DrawAuto, 0, 0, 0, 0, 0, 0, NULL, 0);
+ 	BeforeDraw(c);
+ 
+-	if (!c.call_info.skip)
++	if (!c.call_info.skip) {
++		ZzzCapture::MarkWork(this, ZzzCapture::Work::Draw, mCurrentPixelShader);
+ 		mOrigContext1->DrawAuto();
++	}
+ 	AfterDraw(c);
+ }
+ 
+@@ -3433,11 +3524,14 @@ STDMETHODIMP_(void) HackerContext::DrawIndexedInstancedIndirect(THIS_
+ 	/* [annotation] */
+ 	__in  UINT AlignedByteOffsetForArgs)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::DrawIndirect, mHackerDevice, mCaptureDeferred);
+ 	DrawContext c = DrawContext(DrawCall::DrawIndexedInstancedIndirect, 0, 0, 0, 0, 0, 0, &pBufferForArgs, AlignedByteOffsetForArgs);
+ 	BeforeDraw(c);
+ 
+-	if (!c.call_info.skip)
++	if (!c.call_info.skip) {
++		ZzzCapture::MarkWork(this, ZzzCapture::Work::Draw, mCurrentPixelShader);
+ 		mOrigContext1->DrawIndexedInstancedIndirect(pBufferForArgs, AlignedByteOffsetForArgs);
++	}
+ 	AfterDraw(c);
+ }
+ 
+@@ -3447,11 +3541,14 @@ STDMETHODIMP_(void) HackerContext::DrawInstancedIndirect(THIS_
+ 	/* [annotation] */
+ 	__in  UINT AlignedByteOffsetForArgs)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::DrawIndirect, mHackerDevice, mCaptureDeferred);
+ 	DrawContext c = DrawContext(DrawCall::DrawInstancedIndirect, 0, 0, 0, 0, 0, 0, &pBufferForArgs, AlignedByteOffsetForArgs);
+ 	BeforeDraw(c);
+ 
+-	if (!c.call_info.skip)
++	if (!c.call_info.skip) {
++		ZzzCapture::MarkWork(this, ZzzCapture::Work::Draw, mCurrentPixelShader);
+ 		mOrigContext1->DrawInstancedIndirect(pBufferForArgs, AlignedByteOffsetForArgs);
++	}
+ 	AfterDraw(c);
+ }
+ 
+@@ -3461,7 +3558,9 @@ STDMETHODIMP_(void) HackerContext::ClearRenderTargetView(THIS_
+ 	/* [annotation] */
+ 	__in  const FLOAT ColorRGBA[4])
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Clear, mHackerDevice, mCaptureDeferred);
+ 	RunViewCommandList(mHackerDevice, this, &G->clear_rtv_command_list, pRenderTargetView, false);
++	ZzzCapture::MarkWork(this, ZzzCapture::Work::Clear);
+ 	mOrigContext1->ClearRenderTargetView(pRenderTargetView, ColorRGBA);
+ 	RunViewCommandList(mHackerDevice, this, &G->post_clear_rtv_command_list, pRenderTargetView, true);
+ }
+@@ -3495,9 +3594,11 @@ void STDMETHODCALLTYPE HackerContext::CopySubresourceRegion1(
+ 	/* [annotation] */
+ 	_In_  UINT CopyFlags)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Copy, mHackerDevice, mCaptureDeferred);
+ 	if (G->cache_resource_data != DataCacheBindFlags::INVALID)
+ 		ClearResourceRegionHashCache(pDstResource);
+ 
++	ZzzCapture::MarkWork(this, ZzzCapture::Work::Copy);
+ 	mOrigContext1->CopySubresourceRegion1(pDstResource, DstSubresource, DstX, DstY, DstZ, pSrcResource, SrcSubresource, pSrcBox, CopyFlags);
+ 	
+ 	UpdateTextureSubresourceStateFromCopy(pDstResource, DstSubresource, DstX, DstY, DstZ, pSrcResource, SrcSubresource, pSrcBox, CopyFlags);
+@@ -3519,9 +3620,11 @@ void STDMETHODCALLTYPE HackerContext::UpdateSubresource1(
+ 	/* [annotation] */
+ 	_In_  UINT CopyFlags)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Update, mHackerDevice, mCaptureDeferred);
+ 	if (G->cache_resource_data != DataCacheBindFlags::INVALID)
+ 		ClearResourceRegionHashCache(pDstResource);
+ 
++	ZzzCapture::MarkWork(this, ZzzCapture::Work::Copy);
+ 	mOrigContext1->UpdateSubresource1(pDstResource, DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch, CopyFlags);
+ 
+ 	// TODO: Track resource hash updates
+@@ -3564,6 +3667,7 @@ void STDMETHODCALLTYPE HackerContext::VSSetConstantBuffers1(
+ 	/* [annotation] */
+ 	_In_reads_opt_(NumBuffers)  const UINT *pNumConstants)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ConstantBuffers, mHackerDevice, mCaptureDeferred);
+ 	mOrigContext1->VSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants);
+ }
+ 
+@@ -3580,6 +3684,7 @@ void STDMETHODCALLTYPE HackerContext::HSSetConstantBuffers1(
+ 	/* [annotation] */
+ 	_In_reads_opt_(NumBuffers)  const UINT *pNumConstants)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ConstantBuffers, mHackerDevice, mCaptureDeferred);
+ 	mOrigContext1->HSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants);
+ }
+ 
+@@ -3596,6 +3701,7 @@ void STDMETHODCALLTYPE HackerContext::DSSetConstantBuffers1(
+ 	/* [annotation] */
+ 	_In_reads_opt_(NumBuffers)  const UINT *pNumConstants)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ConstantBuffers, mHackerDevice, mCaptureDeferred);
+ 	mOrigContext1->DSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants);
+ }
+ 
+@@ -3613,6 +3719,7 @@ void STDMETHODCALLTYPE HackerContext::GSSetConstantBuffers1(
+ 	/* [annotation] */
+ 	_In_reads_opt_(NumBuffers)  const UINT *pNumConstants)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ConstantBuffers, mHackerDevice, mCaptureDeferred);
+ 	mOrigContext1->GSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants);
+ }
+ 
+@@ -3630,6 +3737,7 @@ void STDMETHODCALLTYPE HackerContext::PSSetConstantBuffers1(
+ 	/* [annotation] */
+ 	_In_reads_opt_(NumBuffers)  const UINT *pNumConstants)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ConstantBuffers, mHackerDevice, mCaptureDeferred);
+ 	mOrigContext1->PSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants);
+ }
+ 
+@@ -3647,6 +3755,7 @@ void STDMETHODCALLTYPE HackerContext::CSSetConstantBuffers1(
+ 	/* [annotation] */
+ 	_In_reads_opt_(NumBuffers)  const UINT *pNumConstants)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ConstantBuffers, mHackerDevice, mCaptureDeferred);
+ 	mOrigContext1->CSSetConstantBuffers1(StartSlot, NumBuffers, ppConstantBuffers, pFirstConstant, pNumConstants);
+ }
+ 
+@@ -3756,6 +3865,7 @@ void STDMETHODCALLTYPE HackerContext::SwapDeviceContextState(
+ 	/* [annotation] */
+ 	_Out_opt_  ID3DDeviceContextState **ppPreviousState)
+ {
++	ZzzCapture::MarkTargets(this, 0, nullptr, nullptr);
+ 	mOrigContext1->SwapDeviceContextState(pState, ppPreviousState);
+ 
+ 	// If a game or overlay creates separate context state objects we won't
+@@ -3774,10 +3884,12 @@ void STDMETHODCALLTYPE HackerContext::ClearView(
+ 	_In_reads_opt_(NumRects)  const D3D11_RECT *pRect,
+ 	UINT NumRects)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::Clear, mHackerDevice, mCaptureDeferred);
+ 	// TODO: Add a command list here, but we probably actualy want to call
+ 	// the existing RTV / DSV / UAV clear command lists instead for
+ 	// compatibility with engines that might use this if the feature level
+ 	// is high enough, and the others if it is not.
++	ZzzCapture::MarkWork(this, ZzzCapture::Work::Clear);
+ 	mOrigContext1->ClearView(pView, Color, pRect, NumRects);
+ }
+ 
+diff --git a/DirectX11/HackerContext.h b/DirectX11/HackerContext.h
+index 6385bc2..be2e6e8 100644
+--- a/DirectX11/HackerContext.h
++++ b/DirectX11/HackerContext.h
+@@ -124,6 +124,7 @@ private:
+ 	ID3D11DeviceContext1 *mOrigContext1;
+ 	ID3D11DeviceContext1 *mRealOrigContext1;
+ 	HackerDevice *mHackerDevice;
++	bool mCaptureDeferred;
+ 
+ 	// These are per-context, moved from globals.h:
+ 	uint32_t mCurrentVertexBuffers[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+diff --git a/DirectX11/HackerDXGI.cpp b/DirectX11/HackerDXGI.cpp
+index 37fc24f..3461b93 100644
+--- a/DirectX11/HackerDXGI.cpp
++++ b/DirectX11/HackerDXGI.cpp
+@@ -70,6 +70,7 @@
+ #include "IniHandler.h"
+ #include "CommandList.h"
+ #include "profiling.h"
++#include "ZzzCapture.h"
+ #include "cursor.h" // For InstallHookLate
+ 
+ 
+@@ -412,6 +413,7 @@ STDMETHODIMP_(ULONG) HackerSwapChain::Release(THIS)
+ 
+ 	if (ulRef <= 0)
+ 	{
++		ZzzCapture::ReleaseSwapChain(this);
+ 		if (mHackerDevice) {
+ 			if (mHackerDevice->GetHackerSwapChain() == this) {
+ 				LogInfo("  Clearing mHackerDevice->mHackerSwapChain\n");
+@@ -586,9 +588,16 @@ STDMETHODIMP HackerSwapChain::Present(THIS_
+ 			Profiling::end(&profiling_state, &Profiling::present_overhead);
+ 	}
+ 
++	const bool capturePresent = !(Flags & DXGI_PRESENT_TEST) && mHackerDevice && mHackerContext &&
++		ZzzCapture::EnabledOrUninitialized() &&
++		ZzzCapture::BeforePresent(this, mHackerDevice, mHackerContext, mOrigSwapChain1,
++			mHackerDevice->GetPassThroughOrigDevice1(), mHackerContext->GetPassThroughOrigContext1(),
++			SyncInterval, Flags);
+ 	get_tls()->hooking_quirk_protection = true; // Present may call D3D11CreateDevice, which we may have hooked
+ 	HRESULT hr = mOrigSwapChain1->Present(SyncInterval, Flags);
+ 	get_tls()->hooking_quirk_protection = false;
++	if (capturePresent)
++		ZzzCapture::AfterPresent(this, hr);
+ 
+ 	if (!(Flags & DXGI_PRESENT_TEST)) {
+ 		if (profiling)
+@@ -889,9 +898,16 @@ STDMETHODIMP HackerSwapChain::Present1(THIS_
+ 			Profiling::end(&profiling_state, &Profiling::present_overhead);
+ 	}
+ 
++	const bool capturePresent = !(PresentFlags & DXGI_PRESENT_TEST) && mHackerDevice && mHackerContext &&
++		ZzzCapture::EnabledOrUninitialized() &&
++		ZzzCapture::BeforePresent(this, mHackerDevice, mHackerContext, mOrigSwapChain1,
++			mHackerDevice->GetPassThroughOrigDevice1(), mHackerContext->GetPassThroughOrigContext1(),
++			SyncInterval, PresentFlags);
+ 	get_tls()->hooking_quirk_protection = true; // Present may call D3D11CreateDevice, which we may have hooked
+ 	HRESULT hr = mOrigSwapChain1->Present1(SyncInterval, PresentFlags, pPresentParameters);
+ 	get_tls()->hooking_quirk_protection = false;
++	if (capturePresent)
++		ZzzCapture::AfterPresent(this, hr);
+ 
+ 	if (!(PresentFlags & DXGI_PRESENT_TEST)) {
+ 		if (profiling)
+diff --git a/DirectX11/HackerDevice.cpp b/DirectX11/HackerDevice.cpp
+index 8bd156c..0da44c1 100644
+--- a/DirectX11/HackerDevice.cpp
++++ b/DirectX11/HackerDevice.cpp
+@@ -1853,6 +1853,7 @@ STDMETHODIMP HackerDevice::CreateQuery(THIS_
+ 	/* [annotation] */
+ 	__out_opt  ID3D11Query **ppQuery)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::CreateQuery, this);
+ 	HRESULT hr = mOrigDevice1->CreateQuery(pQueryDesc, ppQuery);
+ 	if (G->hunting && SUCCEEDED(hr) && ppQuery && *ppQuery)
+ 		G->mQueryTypes[*ppQuery] = AsyncQueryType::QUERY;
+@@ -2148,6 +2149,7 @@ STDMETHODIMP HackerDevice::CreateBuffer(THIS_
+ 	/* [annotation] */
+ 	__out_opt  ID3D11Buffer **ppBuffer)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::CreateBuffer, this, false, pDesc ? pDesc->ByteWidth : 0);
+ 	D3D11_BUFFER_DESC newDesc;
+ 	const D3D11_BUFFER_DESC *pNewDesc = NULL;
+ 
+@@ -2205,6 +2207,7 @@ STDMETHODIMP HackerDevice::CreateTexture1D(THIS_
+ 	/* [annotation] */
+ 	__out_opt  ID3D11Texture1D **ppTexture1D)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::CreateTexture, this);
+ 	D3D11_TEXTURE1D_DESC newDesc;
+ 	const D3D11_TEXTURE1D_DESC *pNewDesc = NULL;
+ 	uint32_t data_hash, hash;
+@@ -2278,6 +2281,7 @@ STDMETHODIMP HackerDevice::CreateTexture2D(THIS_
+ 	/* [annotation] */
+ 	__out_opt  ID3D11Texture2D **ppTexture2D)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::CreateTexture, this);
+ 	D3D11_TEXTURE2D_DESC newDesc;
+ 	const D3D11_TEXTURE2D_DESC *pNewDesc = NULL;
+ 
+@@ -2377,6 +2381,7 @@ STDMETHODIMP HackerDevice::CreateTexture3D(THIS_
+ 	/* [annotation] */
+ 	__out_opt  ID3D11Texture3D **ppTexture3D)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::CreateTexture, this);
+ 	D3D11_TEXTURE3D_DESC newDesc;
+ 	const D3D11_TEXTURE3D_DESC *pNewDesc = NULL;
+ 
+diff --git a/DirectX11/ResourceHash.cpp b/DirectX11/ResourceHash.cpp
+index 364d6ae..dc4050c 100644
+--- a/DirectX11/ResourceHash.cpp
++++ b/DirectX11/ResourceHash.cpp
+@@ -1,4 +1,5 @@
+ #include "ResourceHash.h"
++#include "ZzzCapture.h"
+ 
+ #include <INITGUID.h>
+ #include "log.h"
+@@ -686,6 +687,7 @@ uint32_t CalcTexture2DDataHash(
+ 	const D3D11_SUBRESOURCE_DATA *pInitialData,
+ 	bool zero_padding)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ResourceHash, nullptr);
+ 	uint32_t hash = 0;
+ 	size_t length_v12;
+ 	size_t length;
+@@ -1134,6 +1136,7 @@ uint32_t CalcTexture1DDataHash(
+ 	const D3D11_TEXTURE1D_DESC *pDesc,
+ 	const D3D11_SUBRESOURCE_DATA *pInitialData)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ResourceHash, nullptr);
+ 	size_t length;
+ 
+ 	if (!pDesc || !pInitialData || !pInitialData->pSysMem)
+@@ -1147,6 +1150,7 @@ uint32_t CalcTexture3DDataHash(
+ 	const D3D11_TEXTURE3D_DESC *pDesc,
+ 	const D3D11_SUBRESOURCE_DATA *pInitialData)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::ResourceHash, nullptr);
+ 	uint32_t hash = 0;
+ 	size_t length_v12;
+ 	size_t length;
+diff --git a/DirectX11/globals.h b/DirectX11/globals.h
+index 74141d7..17ff252 100644
+--- a/DirectX11/globals.h
++++ b/DirectX11/globals.h
+@@ -18,6 +18,7 @@
+ #include "ShaderRegex.h"
+ #include "CommandList.h"
+ #include "profiling.h"
++#include "ZzzCapture.h"
+ #include "lock.h"
+ 
+ extern HINSTANCE migoto_handle;
+@@ -887,6 +888,7 @@ static inline ShaderReplacementMap::iterator lookup_original_shader(ID3D11Device
+ 
+ static inline ShaderOverrideMap::iterator lookup_shaderoverride(UINT64 hash)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::OverrideLookup, nullptr);
+ 	return Profiling::lookup_map(G->mShaderOverrideMap, hash, &Profiling::shaderoverride_lookup_overhead);
+ }
+ 
+@@ -897,5 +899,6 @@ static inline ResourceMap::iterator lookup_resource_handle_info(ID3D11Resource *
+ 
+ static inline TextureOverrideMap::iterator lookup_textureoverride(uint32_t hash)
+ {
++	ZzzCapture::Scope capture(ZzzCapture::Op::OverrideLookup, nullptr);
+ 	return Profiling::lookup_map(G->mTextureOverrideMap, hash, &Profiling::textureoverride_lookup_overhead);
+ }
