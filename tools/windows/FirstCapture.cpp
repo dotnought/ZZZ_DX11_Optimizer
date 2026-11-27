@@ -127,23 +127,18 @@ fs::path ChooseImporter()
     return dir;
 }
 
-std::string VerifiedBundleDigest(const fs::path& root)
+void CheckInstallFiles(const fs::path& root, const fs::path& dir)
 {
+    const auto config = dir / L"zzz-profiler.ini";
+    if (fs::exists(config) &&
+        (GetPrivateProfileIntW(L"Capture", L"Level", 0, config.c_str()) != 2 ||
+         GetPrivateProfileIntW(L"Capture", L"Seconds", Seconds, config.c_str()) != Seconds))
+        throw std::runtime_error("An existing zzz-profiler.ini uses different settings. Set Level=2 and Seconds=45 in that file before retrying.");
     std::ifstream expected(root / L"bin/d3d11.sha256");
     std::string digest;
     expected >> digest;
     if (digest.empty() || FileHash(root / L"bin/d3d11.dll") != digest)
-        throw std::runtime_error("The extracted DLL did not match its checksum. Download and extract the package again.");
-    return digest;
-}
-
-void CheckLevel2Settings(const fs::path& dir)
-{
-    const auto config = dir / L"zzz-profiler.ini";
-    if (!fs::exists(config) ||
-        GetPrivateProfileIntW(L"Capture", L"Level", 0, config.c_str()) != 2 ||
-        GetPrivateProfileIntW(L"Capture", L"Seconds", Seconds, config.c_str()) != Seconds)
-        throw std::runtime_error("Level 2 needs Level=2 and Seconds=45 in zzz-profiler.ini. Restart ZZZ after editing it.");
+        throw std::runtime_error("The extracted profiler DLL did not match its checksum. Download and extract the package again.");
 }
 
 bool Yes()
@@ -175,14 +170,14 @@ void SwitchDll(const fs::path& root, const fs::path& dir, bool restore)
         }
         std::wcout << L"Restore stock XXMI in " << dir.wstring() << L"? [y/N] " << std::flush;
     } else {
-        VerifiedBundleDigest(root);
+        CheckInstallFiles(root, dir);
         if (current != StockHash && fs::exists(backup) && fs::exists(marker))
             throw std::runtime_error("A previous profiler is installed. Choose 6 to restore stock, then choose 3 to install this build.");
         if (current != StockHash)
             throw std::runtime_error("This folder does not contain the official XXMI Libraries v1.3.3 DLL. Keep the vanilla results and tell Codex which XXMI Libraries version you have.");
         if (fs::exists(backup) || fs::exists(marker))
             throw std::runtime_error("Previous install files were found. Choose Restore stock XXMI first.");
-        std::wcout << L"Back up stock XXMI and install the test DLL in " << dir.wstring() << L"? [y/N] " << std::flush;
+        std::wcout << L"Back up stock XXMI and install the Level 2 profiler in " << dir.wstring() << L"? [y/N] " << std::flush;
     }
     if (!Yes())
         return;
@@ -221,7 +216,7 @@ void SwitchDll(const fs::path& root, const fs::path& dir, bool restore)
         fs::remove(backup, ignored);
         std::wcout << L"Stock XXMI restored. Return Unsafe Mode to its previous setting in XXMI Launcher.\n";
     } else {
-        std::wcout << L"Test DLL installed. Open XXMI Launcher, choose ZZMI and check Settings > Advanced > Unsafe Mode before launching.\n";
+        std::wcout << L"Profiler installed. Open XXMI Launcher, choose ZZMI and check Settings > Advanced > Unsafe Mode before launching.\n";
     }
 }
 
@@ -442,42 +437,26 @@ void NotifyResult(std::wstring title, std::wstring text, bool warning) noexcept
     }
 }
 
-enum class CaptureMode { Vanilla, Level2, VertexBatch };
-
-void CheckVertexBatchActive(DWORD pid)
-{
-    const auto name = L"Local\\ZZZ-DX11-VertexBatch-" + std::to_wstring(pid);
-    Handle marker(OpenEventW(SYNCHRONIZE, FALSE, name.c_str()));
-    if (!marker || WaitForSingleObject(marker.get(), 0) != WAIT_OBJECT_0)
-        throw std::runtime_error("The game has not run a batched vertex check. Verify this build is installed, hunting is off, and costume mods are enabled.");
-}
-
-void Capture(const fs::path& root, const fs::path& dir, const std::string& session, bool roscaelifer,
-    CaptureMode mode)
+void Capture(const fs::path& root, const fs::path& dir, const std::string& session, bool roscaelifer, bool native)
 {
     const auto games = FindProcesses(Game, BetaGame);
     if (games.size() != 1)
         throw std::runtime_error("Open one ZZZ game window, enter the area you want to capture, then choose the recording again.");
     Handle nativeStart;
-    const bool native = mode == CaptureMode::Level2;
-    if (mode != CaptureMode::Vanilla) {
-        if (FileHash(dir / L"d3d11.dll") != VerifiedBundleDigest(root))
-            throw std::runtime_error("The ZZMI folder has a different DLL. Close ZZZ and XXMI, then install this build through choice 3.");
-        if (native) {
-            CheckLevel2Settings(dir);
-            nativeStart = OpenNativeRequest(games.front());
-        } else {
-            CheckVertexBatchActive(games.front());
-        }
+    if (native) {
+        if (FileHash(dir / L"d3d11.dll") != FileHash(root / L"bin/d3d11.dll"))
+            throw std::runtime_error("XXMI is using a different DLL. Close ZZZ and XXMI, then use the install option and check the launcher setting in the guide.");
+        CheckInstallFiles(root, dir);
+        if (!fs::exists(dir / L"zzz-profiler.ini"))
+            throw std::runtime_error("The native profiler needs zzz-profiler.ini. Close ZZZ and XXMI, then restore and reinstall.");
+        nativeStart = OpenNativeRequest(games.front());
     }
     const auto exe = root / L"third-party/PresentMon/PresentMon-2.6.0-x64.exe";
     if (FileHash(exe) != PresentMonHash)
         throw std::runtime_error("PresentMon did not match its checksum. Download and extract the package again.");
     const wchar_t* area = roscaelifer ? L"Roscaelifer" : L"SixthStreet";
-    const char* condition = native ? "profiler-l2" :
-        mode == CaptureMode::VertexBatch ? "vertex-batch" : "vanilla";
-    const std::wstring variant(condition, condition + std::char_traits<char>::length(condition));
-    const auto name = RunName(games.front(), area, variant.c_str());
+    const wchar_t* variant = native ? L"profiler-l2" : L"vanilla";
+    const auto name = RunName(games.front(), area, variant);
     const auto run = root / L"runs" / name;
     fs::create_directories(run);
     std::wcout << L"Run folder: " << run.wstring() << L"\n";
@@ -499,7 +478,7 @@ void Capture(const fs::path& root, const fs::path& dir, const std::string& sessi
     const auto captured = native ? CopyNative(dir, run, games.front(), armed) : std::string{};
     std::ofstream report(run / L"run.json");
     report << "{\n  \"scene\": \"" << (roscaelifer ? "Roscaelifer" : "SixthStreet")
-           << "\",\n  \"condition\": \"" << condition
+           << "\",\n  \"condition\": \"" << (native ? "profiler-l2" : "vanilla")
            << "\",\n  \"settings_id\": \"" << session << "\",\n  \"game_version\": \"see-session-notes\","
               "\n  \"driver\": \"see-session-notes\",\n  \"route\": \"fixed-camera\",\n  \"cache\": \"warm\","
               "\n  \"planned_seconds\": " << Seconds << ",\n  \"pid\": " << games.front()
@@ -538,16 +517,16 @@ int wmain()
         for (;;) {
             std::wcout << L"\nZZZ DX11 first capture\n"
                 L"1  Record Vanilla - Roscaelifer\n2  Record Vanilla - Sixth Street\n"
-                L"3  Install the test DLL in ZZMI\n"
+                L"3  Install the profiler in ZZMI\n"
                 L"4  Record Level 2 - Roscaelifer\n5  Record Level 2 - Sixth Street\n"
-                L"6  Restore stock XXMI\n7  Test vertex-buffer optimization - Roscaelifer\n0  Exit\nChoice: " << std::flush;
+                L"6  Restore stock XXMI\n0  Exit\nChoice: " << std::flush;
             std::wstring choice;
             if (!std::getline(std::wcin, choice) || choice == L"0")
                 break;
             try {
                 if (choice == L"1" || choice == L"2") {
-                    Capture(root, {}, session, choice == L"1", CaptureMode::Vanilla);
-                } else if (choice == L"3" || choice == L"4" || choice == L"5" || choice == L"6" || choice == L"7") {
+                    Capture(root, {}, session, choice == L"1", false);
+                } else if (choice == L"3" || choice == L"4" || choice == L"5" || choice == L"6") {
                     if (importer.empty()) {
                         importer = ChooseImporter();
                         if (importer.empty())
@@ -556,15 +535,14 @@ int wmain()
                     if (choice == L"3" || choice == L"6")
                         SwitchDll(root, importer, choice == L"6");
                     else
-                        Capture(root, importer, session, choice != L"5",
-                            choice == L"7" ? CaptureMode::VertexBatch : CaptureMode::Level2);
+                        Capture(root, importer, session, choice == L"4", true);
                 } else {
                     std::wcout << L"Choose a number from the list.\n";
                 }
             } catch (const std::exception& error) {
                 // Keep the console open so the user can read the error and retry.
                 std::cerr << "\n" << error.what() << "\n";
-                if (choice == L"1" || choice == L"2" || choice == L"4" || choice == L"5" || choice == L"7") {
+                if (choice == L"1" || choice == L"2" || choice == L"4" || choice == L"5") {
                     NotifyResult(L"ZZZ capture failed", L"See the capture menu for the error.", true);
                 }
             }

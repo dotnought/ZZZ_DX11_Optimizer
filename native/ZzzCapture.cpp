@@ -173,31 +173,23 @@ unsigned Clamped(unsigned value, unsigned low, unsigned high) noexcept
     return (std::min)((std::max)(value, low), high);
 }
 
-std::wstring CaptureModuleDirectory()
+void Initialize()
 {
+    state.initialized = true;
     HMODULE self = nullptr;
     wchar_t path[32768];
     if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS |
             GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
             reinterpret_cast<LPCWSTR>(&captureMode), &self))
-        return {};
+        return;
     const DWORD length = GetModuleFileNameW(self, path, static_cast<DWORD>(std::size(path)));
     if (!length || length >= std::size(path))
-        return {};
-    std::wstring directory(path, length);
-    const auto slash = directory.find_last_of(L"\\/");
-    if (slash == std::wstring::npos)
-        return {};
-    directory.resize(slash + 1);
-    return directory;
-}
-
-void Initialize()
-{
-    state.initialized = true;
-    state.dir = CaptureModuleDirectory();
-    if (state.dir.empty())
         return;
+    state.dir.assign(path, length);
+    const auto slash = state.dir.find_last_of(L"\\/");
+    if (slash == std::wstring::npos)
+        return;
+    state.dir.resize(slash + 1);
     const auto ini = state.dir + L"zzz-profiler.ini";
     const auto read = [&](const wchar_t* name, unsigned fallback) {
         return GetPrivateProfileIntW(L"Capture", name, fallback, ini.c_str());
@@ -726,28 +718,6 @@ bool Trigger() noexcept
     return pressed;
 }
 } // namespace
-
-bool BatchVertexChecksEnabled()
-{
-    static const bool enabled = [] {
-        const auto dir = CaptureModuleDirectory();
-        return !dir.empty() && GetPrivateProfileIntW(L"Optimization", L"BatchVertexChecks", 1,
-            (dir + L"zzz-profiler.ini").c_str()) == 1;
-    }();
-    return enabled;
-}
-
-bool PublishActiveVertexBatch() noexcept
-{
-    struct Marker {
-        HANDLE event;
-        ~Marker() { if (event) CloseHandle(event); }
-    };
-    wchar_t name[64];
-    swprintf_s(name, L"Local\\ZZZ-DX11-VertexBatch-%lu", GetCurrentProcessId());
-    static const Marker marker{CreateEventW(nullptr, TRUE, TRUE, name)};
-    return marker.event != nullptr;
-}
 
 bool BeforePresent(const void* chain, const void* device, const void* context,
     IDXGISwapChain1* swap, ID3D11Device* rawDevice, ID3D11DeviceContext* rawContext,
