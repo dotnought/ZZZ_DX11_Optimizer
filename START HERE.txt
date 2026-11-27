@@ -1,7 +1,21 @@
-ZZZ DX11 PROFILER - FIRST TEST
+ZZZ DX11 OPTIMIZER - ROSCAELIFER TEST
 
 Unzip the entire download to a normal folder. Double-click Start Here.exe
-inside that folder. Keep its window open and use choices 1 through 6.
+inside that folder.
+
+IF YOU ALREADY SENT YOUR STOCK XXMI RUN
+1. Close ZZZ and XXMI Launcher. Use choice 3 to install the test DLL.
+   If the menu detects the old profiler, use 6, then 3.
+2. Launch ZZZ through XXMI. Leave the built-in ZZMI costume checks enabled
+   and keep personal mods off, as in the stock XXMI baseline. Return to the
+   same Roscaelifer spot with the same camera and graphics settings.
+3. Choose 7 and switch back to ZZZ. Stay in the game until you hear the
+   finish sound or see the "ZZZ capture saved" banner. The menu starts the
+   45-second recording automatically when ZZZ comes to the foreground.
+4. Zip the runs folder next to Start Here.exe and send it. To switch back to
+   stock XXMI afterward, close both apps and choose 6.
+
+FIRST-TIME BASELINE CAPTURE
 
 SET UP ONCE
 Leave ZZZ on DirectX 11. Use the same resolution and graphics settings for
@@ -16,7 +30,7 @@ When you hear the finish sound or see "ZZZ capture saved," the menu is
 ready for the next option. Move to your Sixth Street spot, switch back
 to the same Start Here.exe window, and choose 2.
 
-3 - INSTALL THE PROFILER
+3 - INSTALL THE TEST DLL
 In XXMI Launcher, select ZZMI and click Open Mods Folder. The folder you
 need is ONE LEVEL ABOVE Mods. It contains d3dx.ini and d3d11.dll. Make a
 note of that folder and close ZZZ and XXMI Launcher, including its tray icon.
@@ -25,7 +39,7 @@ The tool checks for XXMI Libraries v1.3.3 and backs up the stock DLL.
 If the version check fails, keep the first two runs and send them with the
 version shown for XXMI Libraries in your launcher.
 
-4 AND 5 - RECORD WITH THE PROFILER
+4 AND 5 - RECORD WITH NATIVE TIMING
 Open XXMI Launcher and select ZZMI. In Settings > Advanced, enable the
 launcher's built-in Unsafe Mode option, which allows a third-party DLL.
 If you prefer to keep it off, stop after the first two runs and send those.

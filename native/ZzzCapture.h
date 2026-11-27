@@ -25,6 +25,9 @@ enum class Work : unsigned { Draw, Dispatch, Copy, Clear, CommandList };
 extern std::atomic<unsigned> captureMode;
 extern std::atomic<bool> assessSwapChain;
 
+bool BatchVertexChecksEnabled();
+bool PublishActiveVertexBatch() noexcept;
+
 inline bool EnabledOrUninitialized() noexcept
 {
     return assessSwapChain.load(std::memory_order_relaxed);

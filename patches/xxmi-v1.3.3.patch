@@ -1,16 +1,17 @@
 diff --git a/DirectX11/CommandList.cpp b/DirectX11/CommandList.cpp
-index 809f92d..dc26d74 100644
+index 809f92d..76f29fe 100644
 --- a/DirectX11/CommandList.cpp
 +++ b/DirectX11/CommandList.cpp
-@@ -14,6 +14,7 @@
+@@ -14,6 +14,8 @@
  #include "D3D11Wrapper.h"
  #include "IniHandler.h"
  #include "profiling.h"
 +#include "ZzzCapture.h"
++#include "ZzzVertexChecks.h"
  #include "Hunting.h"
  #include "cursor.h"
  
-@@ -438,6 +439,7 @@ static void RunCommandListComplete(HackerDevice *mHackerDevice,
+@@ -438,6 +440,7 @@ static void RunCommandListComplete(HackerDevice *mHackerDevice,
  		ID3D11View *view,
  		bool post)
  {
@@ -18,6 +19,173 @@ index 809f92d..dc26d74 100644
  	CommandListState state;
  	state.mHackerDevice = mHackerDevice;
  	state.mHackerContext = mHackerContext;
+@@ -498,6 +501,8 @@ void RunViewCommandList(HackerDevice *mHackerDevice,
+ 		res->Release();
+ }
+ 
++static void merge_vertex_override_checks(CommandList *command_list);
++
+ void optimise_command_lists(HackerDevice *device)
+ {
+ 	bool making_progress;
+@@ -566,8 +571,12 @@ void optimise_command_lists(HackerDevice *device)
+ 		// nice if this sort of thing worked more generally.
+ 	} while (making_progress);
+ 
+-	for (CommandList *command_list : registered_command_lists)
++	const bool batch_vertex_checks = !G->track_region_hashes && ZzzCapture::BatchVertexChecksEnabled();
++	for (CommandList *command_list : registered_command_lists) {
+ 		merge_shader_resource_batches(command_list);
++		if (batch_vertex_checks)
++			merge_vertex_override_checks(command_list);
++	}
+ 
+ 	Profiling::update_cto_warning(!ignore_cto_post);
+ 
+@@ -1353,11 +1362,27 @@ bool ParseCommandListGeneralCommands(const wchar_t *section,
+ static std::string slot_log_name(const ResourceCopyTarget &target, unsigned slot);
+ static CustomResource* pool_element(CustomResourcePool *pool, int pool_first, unsigned index, bool is_assignment);
+ 
++static void run_texture_override_matches(CommandListState *state, const TextureOverrideMatches &matches,
++		bool run_pre_and_post_together)
++{
++	if (run_pre_and_post_together) {
++		const bool saved_post = state->post;
++		state->post = false;
++		for (TextureOverride *match : matches)
++			_RunCommandList(&match->command_list, state);
++		state->post = true;
++		for (TextureOverride *match : matches)
++			_RunCommandList(&match->post_command_list, state);
++		state->post = saved_post;
++	} else {
++		for (TextureOverride *match : matches)
++			_RunCommandList(state->post ? &match->post_command_list : &match->command_list, state);
++	}
++}
++
+ void CheckTextureOverrideCommand::run(CommandListState *state)
+ {
+ 	ResourceCopyTarget *saved_this = NULL;
+-	bool saved_post;
+-	unsigned i;
+ 
+ 	COMMAND_LIST_LOG(state, "%S\n", ini_line.c_str());
+ 
+@@ -1395,23 +1420,7 @@ void CheckTextureOverrideCommand::run(CommandListState *state)
+ 		state->this_target = &checked;
+ 		checked.FindTextureOverrides(state, NULL, &matches);
+ 
+-		if (run_pre_and_post_together) {
+-			saved_post = state->post;
+-			state->post = false;
+-			for (i = 0; i < matches.size(); i++)
+-				_RunCommandList(&matches[i]->command_list, state);
+-			state->post = true;
+-			for (i = 0; i < matches.size(); i++)
+-				_RunCommandList(&matches[i]->post_command_list, state);
+-			state->post = saved_post;
+-		} else {
+-			for (i = 0; i < matches.size(); i++) {
+-				if (state->post)
+-					_RunCommandList(&matches[i]->post_command_list, state);
+-				else
+-					_RunCommandList(&matches[i]->command_list, state);
+-			}
+-		}
++		run_texture_override_matches(state, matches, run_pre_and_post_together);
+ 	}
+ 	state->this_target = saved_this;
+ }
+@@ -1426,6 +1435,88 @@ bool CheckTextureOverrideCommand::noop(bool post, bool ignore_cto_pre, bool igno
+ 	return ignore_cto_pre;
+ }
+ 
++class VertexOverrideCheckBatch : public CommandListCommand {
++	std::vector<std::shared_ptr<CheckTextureOverrideCommand>> checks;
++
++public:
++	explicit VertexOverrideCheckBatch(std::vector<std::shared_ptr<CheckTextureOverrideCommand>> checks)
++		: checks(std::move(checks))
++	{
++		ini_line = L"Batched vertex-buffer override checks";
++	}
++
++	void run(CommandListState *state) override
++	{
++		size_t next = 0;
++		if (!G->track_region_hashes && !G->analyse_frame && !gLogDebug &&
++				Profiling::mode == Profiling::Mode::NONE && !state->mHackerContext->IsDeferredContext()) {
++			static const bool published = ZzzCapture::PublishActiveVertexBatch();
++			(void)published;
++			TextureOverrideMatches matches;
++			const size_t first_match = ZzzVertexChecks::FirstMatch<ID3D11Buffer>(checks.size(),
++				[&](ID3D11Buffer **buffers) {
++					state->mOrigContext1->IAGetVertexBuffers(checks.front()->target.slot,
++						static_cast<UINT>(checks.size()), buffers, nullptr, nullptr);
++				}, [&](ID3D11Buffer *buffer) {
++					find_texture_overrides_for_resource(buffer, &matches, state->call_info);
++					return !matches.empty();
++				});
++
++			if (first_match == checks.size())
++				return;
++
++			// Commands for a match can replace bindings, update resources, or
++			// abort the list. The snapshot has already released all references.
++			const auto &command = checks[first_match];
++			ResourceCopyTarget *saved_this = state->this_target;
++			state->this_target = &command->target;
++			run_texture_override_matches(state, matches, command->run_pre_and_post_together);
++			state->this_target = saved_this;
++			next = first_match + 1;
++		}
++
++		for (; next < checks.size() && !state->aborted; ++next) {
++			command_list_profiling_state profiling_state;
++			profile_command_list_cmd_start(checks[next].get(), &profiling_state);
++			checks[next]->run(state);
++			profile_command_list_cmd_end(checks[next].get(), state, &profiling_state);
++		}
++	}
++};
++
++static std::shared_ptr<CheckTextureOverrideCommand> static_vertex_override_check(
++		const std::shared_ptr<CommandListCommand> &command)
++{
++	auto check = std::dynamic_pointer_cast<CheckTextureOverrideCommand>(command);
++	if (check && check->target.type == ResourceCopyTargetType::VERTEX_BUFFER &&
++			check->target.evaluation_mode == ResourceCopyTargetEvaluationMode::RESOURCE &&
++			!check->target.slot_expression && check->target.slot < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT)
++		return check;
++	return nullptr;
++}
++
++static void merge_vertex_override_checks(CommandList *command_list)
++{
++	auto &commands = command_list->commands;
++	for (size_t i = 0; i + 1 < commands.size(); ++i) {
++		auto first = static_vertex_override_check(commands[i]);
++		if (!first)
++			continue;
++		std::vector<std::shared_ptr<CheckTextureOverrideCommand>> checks{first};
++		while (checks.size() < ZzzVertexChecks::maxBatchSize && i + checks.size() < commands.size()) {
++			auto next = static_vertex_override_check(commands[i + checks.size()]);
++			if (!next || next->target.slot != checks.back()->target.slot + 1)
++				break;
++			checks.push_back(std::move(next));
++		}
++		if (checks.size() == 1)
++			continue;
++		const size_t count = checks.size();
++		commands[i] = std::make_shared<VertexOverrideCheckBatch>(std::move(checks));
++		commands.erase(commands.begin() + i + 1, commands.begin() + i + count);
++	}
++}
++
+ ClearViewCommand::ClearViewCommand() :
+ 	dsv_depth(0.0),
+ 	dsv_stencil(0),
 diff --git a/DirectX11/DirectX11.vcxproj b/DirectX11/DirectX11.vcxproj
 index 5d02e6b..8ae413b 100644
 --- a/DirectX11/DirectX11.vcxproj
@@ -810,7 +978,7 @@ index ab1a45d..bcc0736 100644
  }
  
 diff --git a/DirectX11/HackerContext.h b/DirectX11/HackerContext.h
-index 6385bc2..be2e6e8 100644
+index 6385bc2..663aa14 100644
 --- a/DirectX11/HackerContext.h
 +++ b/DirectX11/HackerContext.h
 @@ -124,6 +124,7 @@ private:
@@ -821,6 +989,14 @@ index 6385bc2..be2e6e8 100644
  
  	// These are per-context, moved from globals.h:
  	uint32_t mCurrentVertexBuffers[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+@@ -1117,6 +1118,7 @@ public:
+ 
+ 	void STDMETHODCALLTYPE Flush(void);
+ 
++	bool IsDeferredContext() const noexcept { return mCaptureDeferred; }
+ 	D3D11_DEVICE_CONTEXT_TYPE STDMETHODCALLTYPE GetType(void);
+ 
+ 	UINT STDMETHODCALLTYPE GetContextFlags(void);
 diff --git a/DirectX11/HackerDXGI.cpp b/DirectX11/HackerDXGI.cpp
 index 37fc24f..3461b93 100644
 --- a/DirectX11/HackerDXGI.cpp

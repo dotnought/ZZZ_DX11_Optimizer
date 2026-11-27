@@ -34,7 +34,8 @@ if subprocess.check_output(["git", "-C", source, "rev-parse", "HEAD"], text=True
     raise SystemExit("The XXMI source changed. Check the pinned release before rebuilding.")
 for name in ("xxmi-v1.3.3.patch", "clang-cross.patch"):
     subprocess.run(["git", "-C", source, "apply", repo / "patches" / name], check=True)
-for file in sorted((repo / "native").glob("ZzzCapture.*")):
+for name in ("ZzzCapture.cpp", "ZzzCapture.h", "ZzzVertexChecks.h"):
+    file = repo / "native" / name
     shutil.copyfile(file, source / "DirectX11" / file.name)
 (source / "version.generated.h").write_text(
     '#define VERSION_MAJOR 1\n#define VERSION_MINOR 3\n#define VERSION_REVISION 3\n'

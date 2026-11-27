@@ -22,7 +22,7 @@ $commit = & git -C $checkout rev-parse HEAD
 if ($LASTEXITCODE -ne 0 -or $commit -ne $pin) { throw "XXMI source did not match $pin" }
 Invoke-Checked git @('-C', $checkout, 'apply', '--check', (Join-Path $root 'patches\xxmi-v1.3.3.patch'))
 Invoke-Checked git @('-C', $checkout, 'apply', (Join-Path $root 'patches\xxmi-v1.3.3.patch'))
-Copy-Item -Path (Join-Path $root 'native\ZzzCapture.*') -Destination (Join-Path $checkout 'DirectX11')
+Copy-Item -Path (Join-Path $root 'native\ZzzCapture.*'), (Join-Path $root 'native\ZzzVertexChecks.h') -Destination (Join-Path $checkout 'DirectX11')
 Push-Location $checkout
 try {
     Invoke-Checked $MSBuild @('StereovisionHacks.sln', '/m', '/p:Configuration=Zip Release',
