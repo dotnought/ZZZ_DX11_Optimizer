@@ -29,3 +29,7 @@ python3 tools/build-cross.py --sdk /path/to/splat --llvm-bin /usr/lib/llvm-19/bi
 ```
 
 The DLL is `build/m1-cross/out/d3d11.dll`. A PE inspection of the test DLL matched the exported names and ordinals of the stock v1.3.3 DLL. PE inspection verifies the binary format and export surface. Actual loader behavior, GPU queries and ZZZ compatibility require Windows testing. Run the offline report tests with `python -m unittest discover -s tests -v`.
+
+## Guided capture menu
+
+From an x64 Developer PowerShell, run `.\tools\Build-FirstCapture.ps1` to build `dist\Start Here.exe`. It is a small Windows console program that calls the bundled PresentMon and performs the version-checked DLL swap. It uses the Windows SDK and static MSVC runtime. Package it with the DLL and the verified PresentMon release executable using `python tools/package.py --launcher "dist/Start Here.exe" --dll dist/bin/d3d11.dll --presentmon third-party/PresentMon/PresentMon-2.6.0-x64.exe --output dist/zzz-dx11-profiler.zip`.

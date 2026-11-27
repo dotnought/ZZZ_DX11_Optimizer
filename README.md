@@ -4,16 +4,9 @@ Windows x64 DX11 capture tools for comparing Roscaelifer with Sixth Street and c
 
 ## First capture
 
-1. Unpack the test bundle. Read [installation and capture](docs/capture.md) before switching libraries.
-2. Benchmark both routes with the game started normally in DX11. Use the bundled PresentMon and the run script to label the runs.
-3. Install the profiler in the **ZZMI importer** folder with the original XXMI Libraries v1.3.3 DLL present. Repeat both routes at Level 2. Press **Ctrl+Alt+F8** at the start of each run.
-4. Analyze the resulting runs with Python 3.10+.
+[Download the Windows test package](https://github.com/dotnought/ZZZ_DX11_Optimizer/tree/profiling-milestone-1-build), extract the ZIP, and double-click **Start Here.exe**. The menu records Roscaelifer and Sixth Street with and without XXMI, guides the DLL swap, and restores stock afterward. See [the first-capture guide](docs/capture.md).
 
-   ```powershell
-   py -3 tools/analyze.py runs --output runs-summary
-   ```
-
-The report ranks observed GPU workload groups and sampled API costs, describes stalls on slow frames, and compares repeated runs with the same scene, route, settings, versions, and cache state. Share the run folders and report files for bottleneck analysis.
+Send the generated `runs` folder for analysis. For local reports or the full benchmark matrix, see the [advanced reference](docs/advanced-capture.md).
 
 ## Source and builds
 

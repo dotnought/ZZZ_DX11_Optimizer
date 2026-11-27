@@ -1,0 +1,43 @@
+ZZZ DX11 PROFILER - FIRST TEST
+
+Unzip the entire download to a normal folder. Double-click Start Here.exe
+inside that folder. Keep its window open and use choices 1 through 6.
+
+SET UP ONCE
+Leave ZZZ on DirectX 11. Use the same resolution and graphics settings for
+all four recordings. Pick one spot in each area where you can stand still
+and point the camera the same way each time.
+
+1 AND 2 - RECORD WITHOUT XXMI
+Close XXMI Launcher. Start ZZZ the way you normally start the unmodded game.
+Go to your Roscaelifer spot. In Start Here.exe choose 1 and press Enter.
+When it says "Waiting," Alt+Tab back to ZZZ and hold Ctrl+Alt+F8 briefly.
+Stay in the game for 45 seconds. The tool prints "Saved" when it finishes.
+Now go to your Sixth Street spot and repeat with choice 2.
+
+3 - INSTALL THE PROFILER
+In XXMI Launcher, select ZZMI and click Open Mods Folder. The folder you
+need is ONE LEVEL ABOVE Mods. It contains d3dx.ini and d3d11.dll. Make a
+note of that folder and close ZZZ and XXMI Launcher, including its tray icon.
+Choose 3, select that folder in the picker, then type y and press Enter.
+The tool checks for XXMI Libraries v1.3.3 and backs up the stock DLL.
+If the version check fails, keep the first two runs and send them with the
+version shown for XXMI Libraries in your launcher.
+
+4 AND 5 - RECORD WITH THE PROFILER
+Open XXMI Launcher and select ZZMI. In Settings > Advanced, enable the
+launcher's built-in Unsafe Mode option, which allows a third-party DLL.
+If you prefer to keep it off, stop after the first two runs and send those.
+Launch ZZZ through XXMI. Return to the same Roscaelifer spot and choose 4.
+Use Ctrl+Alt+F8 in ZZZ and wait 45 seconds as before. Repeat in Sixth Street
+with choice 5. Keep ZZZ open a few seconds after each recording.
+
+6 - PUT STOCK XXMI BACK
+Close ZZZ and XXMI Launcher. Choose 6, then type y and press Enter to undo
+the DLL swap. Return Unsafe Mode to its previous setting in the launcher.
+
+SEND THE RESULTS
+Right-click the runs folder beside Start Here.exe, choose Compress to ZIP
+file, and attach that ZIP. If a run fails, include any saved runs and the
+exact error. You can include a screenshot of your graphics
+settings with the results. No need to run the report tool yourself.
